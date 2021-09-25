@@ -89,7 +89,7 @@ async def login(response: JSONResponse, data: OAuth2PasswordRequestForm = Depend
 @app.post("/api/v1/register")
 async def register_new_user(user: schemas.User, db: Session = Depends(get_db)):
     user_model: models.Client = models.Client(login=user.login)
-    user_by_login = user_loader(user.login)
+    user_by_login = await user_loader(user.login)
     if user_by_login:
         return JSONResponse(
             status_code=400,
@@ -119,11 +119,7 @@ async def register_new_bank_user(user: schemas.BankUser, db: Session = Depends(g
     bank_model: models.Bank = models.Bank(name = user.bank)
     bank = db.query(bank_model).one_or_none()
     if not bank:
-        (
-            bank_model.nonce,
-            bank_model.blockchain_wallet,
-            bank_model.tag,
-        ) = BlockchainWrapper.create_wallet(user.passphrase)
+        bank_model.blockchain_wallet= BlockchainWrapper.create_wallet(user.passphrase)
         db.add(bank_model)
         db.commit()
         db.flush()
@@ -144,11 +140,7 @@ async def register_new_insurer_user(
     insurer_model: models.Insurer = models.Insurer(user.insurer)
     insurer = db.query(insurer_model).one_or_none()
     if not insurer:
-        (
-            insurer_model.nonce,
-            insurer_model.blockchain_wallet,
-            insurer_model.tag,
-        ) = BlockchainWrapper.create_wallet(user.passphrase)
+        insurer_model.blockchain_wallet = BlockchainWrapper.create_wallet(user.passphrase)
         db.add(insurer_model)
         db.commit()
         db.flush()

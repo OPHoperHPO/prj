@@ -24,13 +24,11 @@ class Bank(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
-    tag = Column(LargeBinary, nullable=False)
-    nonce = Column(LargeBinary, nullable=False)
     blockchain_wallet = Column(String, nullable=False)
 
 
 class BankWithUsers(Bank):
-    users = relationship('BankUser', back_populates='bank')
+    users = relationship('BankUserWithBank', back_populates='bank')
 
 
 class Insurer(Base):
@@ -38,13 +36,11 @@ class Insurer(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
-    tag = Column(LargeBinary, nullable=False)
-    nonce = Column(LargeBinary, nullable=False)
     blockchain_wallet = Column(String, nullable=False)
 
 
 class InsurerWithUsers(Insurer):
-    users = relationship('BankUser', back_populates='bank')
+    users = relationship('InsurerUserWithInsurer', back_populates='insurer')
 
 
 class InsurerUser(Base):
@@ -82,8 +78,6 @@ class Client(Base):
     login = Column(String, nullable=False)
     password = Column(LargeBinary, nullable=False)
     salt = Column(LargeBinary, nullable=False)
-    tag = Column(LargeBinary, nullable=False)
-    nonce = Column(LargeBinary, nullable=False)
     blockchain_wallet = Column(String, nullable=False)
 
 

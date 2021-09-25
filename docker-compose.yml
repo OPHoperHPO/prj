@@ -12,6 +12,8 @@ services:
       PORT: 80
       POSTGRES_HOST: postgres://admin:admin@hackaton_db/hackaton
     restart: always
+    depends_on:
+      - database
   database:
     image: "postgres" # use latest official postgres version
     container_name: hackaton_db
