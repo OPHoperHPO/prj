@@ -82,11 +82,14 @@ contract InsuranceCaseContract{
 
 
     function getInfo() external view isUserOrBankOrInsCompany
-    returns(address, string memory, string memory, string memory, string memory,
-    uint256, uint256, bool, bool, uint256)  {
+    returns(address, string memory, string memory,
+        string memory, string memory,
+    uint256, uint256, bool, bool, uint256, bool, string memory)  {
         return(address(_parentContractAddress),
         _reason, _condition, _phoneNumber,
-                _email, _happenedDate, _damageAmount, _isPaymentConfirmed, _isClosed, _paymentAmount);
+                _email, _happenedDate, _damageAmount,
+        _isPaymentConfirmed, _isClosed, _paymentAmount,
+        _isPaymentConfirmedByBank, _rejectCause);
     }
 
     function closeReject(string memory cause) public isInsCompany {
@@ -237,13 +240,25 @@ contract Contract {
         indebtednessDate = endTimestamp;
     }
 
-    function getContractData() external view isUserOrBankOrInsCompany returns(
-                address, address,
-                bool,bool, string memory, uint256, uint256, uint256, uint256,
-                uint256, uint256,uint256,uint256, string memory){
+    function getContractInfo() external view isUserOrBankOrInsCompany returns(
+    bool,
+    bool,
+    string memory,
+    uint256,
+    uint256,
+    uint256,
+    uint256,
+    uint256,
+    uint256,
+    uint256,
+    uint256,
+    uint256,
+    uint256,
+    string memory
+
+
+    ){
         return(
-        bankAddress,
-        insCompAddress,
         is_active,
         is_expired,
         userFullname,
@@ -254,8 +269,27 @@ contract Contract {
         totalAmount,
         paymentTimestamp,
         paymentAmount,
+        indebtednessAmount,
+        indebtednessDate,
         contractRisks,
         contractRisksType
+
+);
+    }
+
+    function getContractAddresses() external view isUserOrBankOrInsCompany returns(
+    address,
+    address,
+    address,
+    address
+
+
+    ){
+        return(
+        userAddress,
+        bankAddress,
+        insCompAddress,
+        address(insuranceContract)
 
 );
     }
