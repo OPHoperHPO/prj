@@ -4,16 +4,13 @@ from pathlib import Path
 from solcx import compile_source
 
 
-
-
-
-class ContractWrapper:
-    def __init__(self, rpc_address: str, contract_file: Path):
+class BaseContractWrapper:
+    def __init__(self, rpc_address: str, contract_file: Path, contract_name: str):
         self.web3 = web3.Web3(web3.HTTPProvider(rpc_address))
+        self.contract_name = contract_name
         self.abi, self.bytecode = self.compile_contract(contract_file)
 
-    @staticmethod
-    def compile_contract(sol_file: Path):
+    def compile_contract(self, sol_file: Path):
         """Compiles solidity contract."""
         if isinstance(sol_file, str):
             with open(sol_file) as f:
@@ -23,11 +20,18 @@ class ContractWrapper:
         else:
             raise NotImplemented("Unknown type of input sol filepath")
         compiled_sol = compile_source(src, optimize=True, allow_paths=[Path("./")])
-        contract = compiled_sol['<stdin>:Contract']
+        contract = compiled_sol[f'<stdin>:{self.contract_name}']
         bytecode = contract['bin']
         abi = contract['abi']
         return abi, bytecode
 
+    def get_contract_by_address(self, contract_address):
+        contract = self.web3.eth.contract(address=contract_address,
+                                          abi=self.abi)
+        return contract
+
+
+class ContractWrapper(BaseContractWrapper):
     def create(self,
                insurer_account: eth_account.account.LocalAccount,
                info: dict,
@@ -59,14 +63,17 @@ class ContractWrapper:
         contract_address = contract_tx_info["contractAddress"]
         return contract_address
 
-    def get_contract_by_address(self, contract_address):
-        contract = self.web3.eth.contract(address=contract_address,
-                                          abi=self.abi)
-        return contract
-
     def get_bank_address(self, contract_address):
         contract = self.get_contract_by_address(contract_address)
         return contract.functions.bankAddress().call()
+
+    def get_bank_name(self, contract_address):
+        contract = self.get_contract_by_address(contract_address)
+        return contract.functions.bankName().call()
+
+    def get_insurance_company_name(self, contract_address):
+        contract = self.get_contract_by_address(contract_address)
+        return contract.functions.insCompName().call()
 
     def get_ins_company_address(self, contract_address):
         contract = self.get_contract_by_address(contract_address)
@@ -201,6 +208,115 @@ class ContractWrapper:
         transaction = contract.functions.setPaymentRecieved(
             payment_timestamp, payment_amount
         ).buildTransaction({
+            'gas': 4712388,
+            'gasPrice': 100000000000,
+            'from': account.address,
+            'nonce': self.web3.eth.get_transaction_count(account.address)
+        })
+        signed_txn = self.web3.eth.account.signTransaction(transaction,
+                                                           private_key=account.privateKey)
+        self.web3.eth.sendRawTransaction(signed_txn.rawTransaction)
+        return True
+
+
+class InsurnanceCaseContractWrapper(BaseContractWrapper):
+
+    def get_contract_by_address(self, contract_address):
+        contract = self.web3.eth.contract(address=contract_address,
+                                          abi=self.abi)
+        return contract
+
+    def get_contract_info(self, contract_address,
+                          account: eth_account.account.LocalAccount):
+        contract = self.get_contract_by_address(contract_address)
+        # TODO Пофиксить проблему с помощью обработки raw транзакций.
+        #  Как выход создавать новый объект при каждом запросе
+        #  Во время множества асинхронных запросов к функции может произойти коллизия аккаунтов
+        #  и она вернёт ошибку доступа.
+        self.web3.eth.default_account = account.address
+
+        data = contract.functions.getInfo().call()
+        nt = ["parentContractAddress",
+              "reason",
+              "condition",
+              "phoneNumber",
+              "email",
+              "happenedDate",
+              "damageAmount",
+              "isPaymentConfirmed",
+              "isClosed",
+              "paymentAmount",
+              "isPaymentConfirmedByBank",
+              "rejectCause"]
+        return dict(zip(nt, data))
+
+    def close_reject(self,
+                     cause: str,
+                     contract_address,
+                     account: eth_account.account.LocalAccount):
+        contract = self.get_contract_by_address(contract_address)
+        transaction = contract.functions.createInsurnanceCase(cause) \
+            .buildTransaction({
+            'gas': 4712388,
+            'gasPrice': 100000000000,
+            'from': account.address,
+            'nonce': self.web3.eth.get_transaction_count(account.address)
+        })
+        signed_txn = self.web3.eth.account.signTransaction(transaction,
+                                                           private_key=account.privateKey)
+        self.web3.eth.sendRawTransaction(signed_txn.rawTransaction)
+        return True
+
+    def confirm_payment_from_bank(self,
+                                  contract_address,
+                                  account: eth_account.account.LocalAccount):
+        contract = self.get_contract_by_address(contract_address)
+        transaction = contract.functions.confirmPaymentFromBank() \
+            .buildTransaction({
+            'gas': 4712388,
+            'gasPrice': 100000000000,
+            'from': account.address,
+            'nonce': self.web3.eth.get_transaction_count(account.address)
+        })
+        signed_txn = self.web3.eth.account.signTransaction(transaction,
+                                                           private_key=account.privateKey)
+        self.web3.eth.sendRawTransaction(signed_txn.rawTransaction)
+        return True
+
+    def confirm_by_insurance_company(self,
+                                     payment_amount: int,
+                                     contract_address,
+                                     account: eth_account.account.LocalAccount):
+        contract = self.get_contract_by_address(contract_address)
+        transaction = contract.functions.confirm(payment_amount) \
+            .buildTransaction({
+            'gas': 4712388,
+            'gasPrice': 100000000000,
+            'from': account.address,
+            'nonce': self.web3.eth.get_transaction_count(account.address)
+        })
+        signed_txn = self.web3.eth.account.signTransaction(transaction,
+                                                           private_key=account.privateKey)
+        self.web3.eth.sendRawTransaction(signed_txn.rawTransaction)
+        return True
+
+    def update(self,
+               reason: str,
+               condition: str,
+               phoneNumber: str,
+               email: str,
+               damageAmount: int,
+               damageDate: int,
+               contract_address,
+               account: eth_account.account.LocalAccount):
+        contract = self.get_contract_by_address(contract_address)
+        transaction = contract.functions.update(reason,
+                                                condition,
+                                                phoneNumber,
+                                                email,
+                                                damageAmount,
+                                                damageDate) \
+            .buildTransaction({
             'gas': 4712388,
             'gasPrice': 100000000000,
             'from': account.address,

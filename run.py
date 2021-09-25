@@ -3,7 +3,7 @@ from pathlib import Path
 
 from wrapper import ContractWrapper
 
-contract = ContractWrapper("http://127.0.0.1:8545", Path("contract.sol"))
+contract = ContractWrapper("http://127.0.0.1:8545", Path("contract.sol"), "Contract")
 insurer_account = contract.web3.eth.account.privateKeyToAccount(
     "0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d")
 bank_account = contract.web3.eth.account.privateKeyToAccount(
@@ -33,3 +33,7 @@ print("is active:", contract.is_active(contract_address, insurer_account))
 contract.set_payment_recieved(10, 10, contract_address, bank_account)
 print("is active:", contract.is_active(contract_address, insurer_account))
 print("Get Info:", contract.get_contract_info(contract_address, user_account))
+print("Bank Name", contract.get_bank_name(contract_address))
+print("Insurance Company Name", contract.get_insurance_company_name(contract_address))
+
+
