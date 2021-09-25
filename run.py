@@ -36,4 +36,16 @@ print("Get Info:", contract.get_contract_info(contract_address, user_account))
 print("Bank Name", contract.get_bank_name(contract_address))
 print("Insurance Company Name", contract.get_insurance_company_name(contract_address))
 
+print("Insurance Case Address:", contract.createInsurnanceCase(
+    reason="1234",
+    condition="3214",
+    phoneNumber="+12346789",
+    email="mail@example.com",
+    damageAmount=1000,
+    damageDate=int(time.time()),
+    contract_address=contract_address,
+    account=user_account
+))
+
+
 

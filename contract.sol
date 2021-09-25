@@ -4,7 +4,7 @@ pragma solidity >=0.7.0 <0.9.0;
 
 contract Contract {
 
-    address private userAddress;  // Адрес клиента в блокчейне
+    address public userAddress;  // Адрес клиента в блокчейне
     address public bankAddress;  // Адрес банка в блокчейне
     address public insCompAddress;  // Адрес страховой в блокчейне
 
@@ -214,6 +214,7 @@ contract InsuranceCaseContract{
     event InsuranceCaseClosedConfirmed(address indexed contractAddress, uint256 timestamp); // Обращение закрыто и выплачена компенсация
     event InsuranceCaseUpdated(address indexed contractAddress, uint256 timestamp); // Страховое обращение обновлено
 
+    mapping (address => bool) isParent;
 
     constructor(
         address parentAddress,
@@ -225,9 +226,8 @@ contract InsuranceCaseContract{
         uint256 damageDate) public {
 
         Contract parentContract = Contract(parentAddress);
-        ( address userAddress, , , ) = parentContract.getContractAddresses();
-        require(parentContract.isActive() && !parentContract.isExpired(), "Contract Expired");
-        require( userAddress == msg.sender, "Only user can create this contract");
+        isParent[parentAddress] = true;
+        require(isParent[msg.sender], "Only parent contract can create this contract");
 
         _parentContractAddress = parentContract;
        _reason = reason;
@@ -254,21 +254,18 @@ contract InsuranceCaseContract{
     }
 
     modifier isUser() {
-        ( address userAddress, , , ) = _parentContractAddress.getContractAddresses();
-        require(msg.sender == userAddress, "Caller is not user");
+        require(_parentContractAddress.userAddress() == msg.sender, "Caller is not user");
         _;
     }
 
     modifier isUserOrInsCompany(){
-        ( address userAddress, , , ) = _parentContractAddress.getContractAddresses();
-        require(msg.sender == userAddress || msg.sender == _parentContractAddress.insCompAddress(), "Caller is not user or Ins Company");
+        require(msg.sender == _parentContractAddress.userAddress() || msg.sender == _parentContractAddress.insCompAddress(), "Caller is not user or Ins Company");
         _;
     }
 
 
     modifier isUserOrBankOrInsCompany(){
-        ( address userAddress, , , ) = _parentContractAddress.getContractAddresses();
-        require(msg.sender == userAddress || msg.sender == _parentContractAddress.insCompAddress()
+        require(msg.sender == _parentContractAddress.userAddress() || msg.sender == _parentContractAddress.insCompAddress()
             || msg.sender == _parentContractAddress.bankAddress(),
             "Caller is not user or Ins Company or Bank");
         _;
