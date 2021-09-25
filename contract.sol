@@ -13,10 +13,13 @@ contract InsuranceCaseContract{
     bool private _isPaymentConfirmed; // Подтверждёна ли выплата по обращению
     bool private _isClosed; // Закрыто ли обращение
     uint256 private _paymentAmount; // Выплата по страховому случаю.
+    bool private _isPaymentConfirmedByBank; // Подтверждена ли выплата клиенту со стороны банка
+    string private _rejectCause; // Причина отказа в выплате
 
     event InsuranceCaseConfirmed(address indexed contractAddress, uint256 timestamp); // Получено разрешение на выплату компенсации
     event InsuranceCaseCreated(address indexed contractAddress, uint256 timestamp); // Зарегистрировано страховое обращение
-    event InsuranceCaseClosed(address indexed contractAddress, uint256 timestamp); // Зарегистрировано страховое обращение
+    event InsuranceCaseClosedRejected(address indexed contractAddress, uint256 timestamp, string cause); // Обращение закрыто и отклонено
+    event InsuranceCaseClosedConfirmed(address indexed contractAddress, uint256 timestamp); // Обращение закрыто и выплачена компенсация
     event InsuranceCaseUpdated(address indexed contractAddress, uint256 timestamp); // Страховое обращение обновлено
 
 
@@ -86,11 +89,22 @@ contract InsuranceCaseContract{
                 _email, _happenedDate, _damageAmount, _isPaymentConfirmed, _isClosed, _paymentAmount);
     }
 
-    function close() public isInsCompany {
+    function closeReject(string memory cause) public isInsCompany {
         require(!_isClosed, "Contract is already closed");
         _isClosed = true;
-        emit InsuranceCaseClosed(address(this), block.timestamp);
+        _rejectCause = cause;
+        emit InsuranceCaseClosedRejected(address(this), block.timestamp, cause);
 
+    }
+
+    function confirmPaymentFromBank() public isBank {
+        require(!_parentContractAddress.isExpired() && _parentContractAddress.isActive(),
+            "Parent Contract is deactivated or expired");
+        require(!_isClosed, "Contract deactivated");
+
+        _isPaymentConfirmedByBank = true;
+        _isClosed = true; // Закрываем обращение по причине подтверждения выплаты клиенту компенсации со стороны банка
+        emit InsuranceCaseClosedConfirmed(address(this), block.timestamp);
     }
 
     function confirm(uint256 payment_amount) public isInsCompany  {
@@ -101,6 +115,8 @@ contract InsuranceCaseContract{
         _isPaymentConfirmed = true;
         _paymentAmount = payment_amount; // Страховая назначает свой размер компенсации
         emit InsuranceCaseConfirmed(address(this), block.timestamp);
+        // Даём банку знать о том, что подтверждён страховой случай, а значит он должен обновить информацию о задолжности в этот момент
+        // Обработать платёж и подтвердить выплату компенсации клиенту.
     }
 
     function update(
@@ -144,6 +160,8 @@ contract Contract {
     uint256 private totalAmount; // Страховая сумма
     uint256 private paymentTimestamp; // Дата оплаты
     uint256 private paymentAmount; // Сумма оплаты
+    uint256 private indebtednessAmount; // Задолжность по оплате
+    uint256 private indebtednessDate; // Дата закрытия кредита
     uint256 private contractRisks; // Страховые риски: вероятность от 0 до 1000000
     string private contractRisksType; // Страховые риски: тип
 
@@ -210,6 +228,13 @@ contract Contract {
     }
     function isExpired() external view isUserOrBankOrInsCompany returns(bool){
         return(is_expired);
+    }
+
+    function indebtednessUpdate(uint256 amount, uint256 endTimestamp) public isBank {
+        require(is_active, "Contract should be active");
+        require(!is_expired, "Contract expired");
+        indebtednessAmount = amount;
+        indebtednessDate = endTimestamp;
     }
 
     function getContractData() external view isUserOrBankOrInsCompany returns(
