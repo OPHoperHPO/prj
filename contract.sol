@@ -25,19 +25,31 @@ contract Contract {
     uint256 private contractRisks; // Страховые риски: вероятность от 0 до 1000000
     string private contractRisksType; // Страховые риски: тип
 
-    event ContractCreated(address indexed contractAddress);  // контракт создался (Выставлен счёт на оплату)
-    event ContractActivated(address indexed contractAddress); // контракт активирован
-    event ContractDeactivated(address indexed contractAddress); // контракт активирован
-    event OwnerSet(address indexed oldOwner, address indexed newOwner);
 
-    constructor(address bank, address user,     
+    string private insuranceCaseReason; // Причина страхового случая
+    string private insuranceCaseCondition; // Обстоятельства страхового случая
+    string private insuranceCasePhoneNumber; // Номер заявителя
+    string private insuranceCaseEmail; //  Email заявителя
+    uint256 private insuranceCaseHappenedDate; // Дата страхового события в UNIX timestamp
+    uint256 private insuranceCaseDamageAmount; // Размер ущерба страхового случая
+    bool private isInsuranceCasePaymentConfirmed; // Подтверждёна ли выплата по обращению
+
+    uint256 private insuranceCasePaymentAmount; //
+
+    event ContractCreated(address indexed contractAddress, uint256 timestamp);  // контракт создался (Выставлен счёт на оплату)
+    event ContractActivated(address indexed contractAddress, uint256 timestamp); // контракт активирован
+    event ContractDeactivated(address indexed contractAddress, uint256 timestamp); // контракт деактивирован
+    event InsuranceCaseConfirmed(address indexed contractAddress, uint256 timestamp); // Получено разрешение на выплату компенсации
+    event InsuranceCaseRegistered(address indexed contractAddress, uint256 timestamp); // Зарегистрировано страховое обращение
+
+    constructor(address bank, address user,
                 string memory luserFullname,
                 uint256  lcreditContractNumber,
                 uint256  lcreditContractTimestamp,
-                uint256  lcontractNumber, 
-                uint256  ltotalAmount, 
+                uint256  lcontractNumber,
+                uint256  ltotalAmount,
                 string memory lcontractRisksType) {
-                    
+
         // Вносим инфу о договоре
         userFullname = luserFullname;
         creditContractTimestamp = lcreditContractTimestamp;
@@ -45,84 +57,104 @@ contract Contract {
         totalAmount = ltotalAmount;
         contractRisksType = lcontractRisksType;
         contractNumber = lcontractNumber;
-        
+        contractTimestamp = block.timestamp;
+
         bankAddress = bank;
         userAddress = user;
         insCompAddress = msg.sender;   // Страховая создаёт договор
-        emit ContractCreated(address(this)); // договор создан, но не активирован до оплаты. Шлём уведомление банку.
-        
-        
+        emit ContractCreated(address(this), block.timestamp); // договор создан, но не активирован до оплаты. Шлём уведомление банку.
+
+
     }
 
     modifier isBank() {
         require(msg.sender == bankAddress, "Caller is not bank");
         _;
     }
-    
+
     modifier isUser() {
         require(msg.sender == userAddress, "Caller is not user");
         _;
     }
-    
+
     modifier isUserOrInsCompany(){
         require(msg.sender == userAddress || msg.sender == insCompAddress, "Caller is not user or Ins Company");
         _;
     }
-    
-    
+
+
     modifier isUserOrBankOrInsCompany(){
         require(msg.sender == userAddress || msg.sender == insCompAddress || msg.sender == bankAddress, "Caller is not user or Ins Company");
         _;
     }
-    
-    function getContractData() public isUserOrBankOrInsCompany() returns(
-    address, address,
-    bool,bool, string memory, uint256, uint256, uint256, uint256,
-    uint256, uint256,uint256,uint256, string memory){
+
+
+    function getContractData() public isUserOrBankOrInsCompany returns(
+                address, address,
+                bool,bool, string memory, uint256, uint256, uint256, uint256,
+                uint256, uint256,uint256,uint256, string memory){
         return(
-        bankAddress, 
-        insCompAddress, 
-        is_active, 
-        is_expired, 
-        userFullname, 
+        bankAddress,
+        insCompAddress,
+        is_active,
+        is_expired,
+        userFullname,
         creditContractNumber,
-        creditContractTimestamp, 
-        contractNumber,  
-        contractTimestamp, 
-        totalAmount, 
+        creditContractTimestamp,
+        contractNumber,
+        contractTimestamp,
+        totalAmount,
         paymentTimestamp,
-        paymentAmount, 
-        contractRisks, 
+        paymentAmount,
+        contractRisks,
         contractRisksType
 
 );
     }
-    
+
+    function registerInsuranceCase( string memory reason, // Причина страхового случая
+        string memory condition, // Обстоятельства страхового случая
+        string memory phoneNumber, // Номер заявителя
+        string memory  email, //  Email заявителя
+        uint256 damageAmount,
+        uint256 damageDate) public isUser {
+       insuranceCaseReason = reason;
+       insuranceCaseCondition = condition;
+       insuranceCaseDamageAmount = damageAmount;
+       insuranceCaseHappenedDate = damageDate;
+       insuranceCaseEmail = email;
+       insuranceCasePhoneNumber = phoneNumber;
+       isInsuranceCasePaymentConfirmed = false;
+       emit InsuranceCaseRegistered(address(this),  block.timestamp);
+
+    }
+
     // Деактивирует контракт по запросу пользователя или страховой компании
     function deactivateContract() public isUserOrInsCompany {
         require(is_active, "Contract is already inactive");
         require(!is_expired, "Contract is expired");
-        
-        is_active = false;  
+
+        is_active = false;
         is_expired = true;  // Запрещаем реактивацию договора
+        emit ContractDeactivated(address(this),  block.timestamp);
     }
 
     // Функция для банка для уведомления об оплате счёта
     function setPaymentRecieved(uint256 payment_timestamp, uint256 payment_amount) public isBank {
         require(!is_active, "Contract is already active");
         require(!is_expired, "Contract is expired");
-        
+
         paymentAmount = payment_amount;
         paymentTimestamp = payment_timestamp;
         is_active = true;
-        
-        emit ContractActivated(address(this));
+
+        emit ContractActivated(address(this), block.timestamp);
     }
-    
-    
+
+
     // function getOwner() external view returns (address) {
     //     return owner;
     // }
-    
-    
+
+
 }
