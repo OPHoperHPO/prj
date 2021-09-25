@@ -1,19 +1,12 @@
 <template>
   <div class="profile">
     <div class="profile__inner">
-      <!-- <div class="profile__list">
-        <div class="profile__item">Поиск договора</div>
-        <div v-if="'role' != 'bank'" class="profile__item">
-          Добавить договор
-        </div>
-        <div v-if="'role' != 'person'" class="profile__item">
-          Оформить страховой случай
-        </div>
-        <div class="profile__item"></div>
-      </div> -->
       <find-contract />
-      <create-contract v-if="this.character == 'bank'" />
-      <insured-event v-if="this.character == 'person'" />
+      <create-contract
+        v-if="['insurer', 'bank'].includes(this.character)"
+        class="profile__block"
+      />
+      <insured-event v-if="this.character == 'person'" class="profile__block" />
     </div>
   </div>
 </template>
@@ -22,6 +15,7 @@
 import FindContract from '@/components/FindContract.vue'
 import CreateContract from '@/components/CreateContract.vue'
 import InsuredEvent from '@/components/InsuredEvent.vue'
+import { mapGetters } from 'vuex'
 
 export default {
   components: {
@@ -31,9 +25,7 @@ export default {
   },
 
   computed: {
-    character() {
-      return this.$route.query.character
-    }
+    ...mapGetters(['character']),
   },
 }
 </script>
@@ -41,18 +33,36 @@ export default {
 <style lang="scss">
 .profile {
   padding: 15px;
+  height: 100%;
+  background-color: var(--primary);
+  background-image: url("../assets/bg.png");
+  background-size: contain;
+  background-position: bottom;
+  background-repeat: no-repeat;
   overflow-y: auto;
 
   &__inner {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    justify-content: flex-start;
-    align-items: flex-start;
+    display: flex;
+    grid-gap: 15px;
+    justify-content: space-evenly;
   }
 }
 
 .contract {
-  margin: 10px;
+  margin: 15px 0 auto;
+  padding: 15px;
+  position: relative;
+  width: 400px;
+  border-radius: 1.2em;
+  background-color: var(--primary-lite);
+  box-shadow: var(--separator-shadow);
+  overflow: hidden;
+
+  &__inner {
+    margin: auto;
+    width: 90%;
+    max-width: 320px;
+  }
 
   &__table {
     display: grid;
@@ -60,41 +70,6 @@ export default {
     justify-content: flex-start;
     align-items: center;
     width: 100%;
-  }
-
-  &__block {
-    box-shadow: var(--separator-shadow);
-  }
-}
-.search {
-  padding: 15px;
-  position: relative;
-  border-radius: 5px;
-  background-color: var(--primary-lite);
-  overflow: hidden;
-
-  &__inner {
-    margin: auto;
-    width: 90%;
-    max-width: 320px;
-  }
-
-  .data {
-    margin: 25px 0 0;
-    border-top: 1px solid var(--separator);
-  }
-}
-.create {
-  padding: 15px;
-  position: relative;
-  border-radius: 5px;
-  background-color: var(--primary-lite);
-  overflow: hidden;
-
-  &__inner {
-    margin: auto;
-    width: 90%;
-    max-width: 320px;
   }
 }
 .info {
@@ -143,6 +118,13 @@ export default {
     border-radius: 8px;
     background-color: var(--primary-dark);
     border: 2px outset var(--primary-dark);
+  }
+}
+
+@media screen and (max-width: 740px) {
+  .profile__inner {
+    flex-direction: column;
+    align-items: center;
   }
 }
 </style>

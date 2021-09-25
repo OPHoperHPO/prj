@@ -99,8 +99,7 @@ export default {
 
 <style lang="scss" scoped>
 .event {
-  padding: 10px;
-  padding-top: 22px;
+  padding: 16px;
   width: 100%;
   height: 100%;
   max-height: 55px;
@@ -108,7 +107,7 @@ export default {
   font-size: 16px;
   outline: none;
   border: solid 1px #dde1e6;
-  border-radius: 4px;
+  border-radius: 1em;
   transition: border 0.2s ease-in-out;
 
   &:hover {
@@ -116,7 +115,7 @@ export default {
   }
 
   &:focus {
-    border: solid 1px #6eaffe;
+    border: solid 1px var(--secondary);
   }
 }
 </style>

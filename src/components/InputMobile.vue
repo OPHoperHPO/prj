@@ -140,15 +140,14 @@ export default {
 }
 
 .form-input {
-  padding: 10px;
-  padding-top: 22px;
+  padding: 22px 16px 10px;
   width: 100%;
   height: 100%;
   max-height: 55px;
   font: 16px "Roboto" 500;
   outline: none;
   border: solid 1px #dde1e6;
-  border-radius: 4px;
+  border-radius: 1em;
   transition: border 0.2s ease-in-out;
 
   &:hover {
@@ -156,7 +155,7 @@ export default {
   }
 
   &:focus {
-    border: solid 1px #6eaffe;
+    border: solid 1px var(--secondary);
   }
 }
 
@@ -172,11 +171,11 @@ export default {
   &.active {
     font-size: 12px;
     top: 12px;
-    left: 12px;
+    // left: 12px;
   }
 
   &.focus {
-    color: #6eaffe;
+    color: var(--secondary);
   }
 }
 </style>

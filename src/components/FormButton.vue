@@ -25,20 +25,20 @@ export default {
 
 .button {
   margin: auto;
-  padding: 10px 2em;
+  padding: 6px 2em;
   border: none;
-  border-radius: 5px;
+  border-radius: 2em;
   font-size: 18px;
   color: #ffffff;
-  background: #2045cb;
+  background: var(--secondary);
   transition: all 0.1s ease-in-out;
 
   &:hover {
-    background: #1e41bd;
+    background: #223c80;
   }
 
   &:active {
-    background: #18359c;
+    background: #3d5799;
   }
 }
 </style>

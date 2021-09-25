@@ -1,23 +1,9 @@
 <template>
   <nav :class="{ active: navbarActive }" class="nav">
     <router-link :to="{ name: 'home' }" class="nav__logo">
-      <img :src="logo" />
+      <img src="@/assets/logo.png" />
     </router-link>
-    <div class="menu">
-      <a href="/" class="menu__logo">{{ logo_text }}</a>
-      <div @click.stop="toggleNavbar" class="menu__btn"><span></span></div>
-    </div>
     <ul class="nav__block">
-      <template v-for="contact in contacts" :key="contact.name">
-        <li class="contact">
-          <div class="contact__inner">
-            <router-link :href="contact.href" class="contact__link">
-              <span class="logo material-icons-round">{{ contact.logo }}</span>
-              <span class="name">{{ contact.name }}</span>
-            </router-link>
-          </div>
-        </li>
-      </template>
       <li v-if="userLoggedIn" class="redirect">
         <router-link
           :to="{ name: 'profile' }"
@@ -36,7 +22,7 @@
 </template>
 
 <script>
-import { mapActions } from 'vuex';
+import { mapActions, mapGetters } from 'vuex';
 export default {
   name: 'vNavbar',
 
@@ -54,11 +40,11 @@ export default {
       require: false,
       default: { pc: '70px', tablet: '40px' },
     },
-    logo: {
-      type: String,
-      require: true,
-    },
-    logo_text: {
+    // logo: {
+    //   type: String,
+    //   require: true,
+    // },
+    logoText: {
       type: String,
       require: true,
     },
@@ -77,6 +63,8 @@ export default {
   },
 
   computed: {
+    ...mapGetters(['authToken']),
+
     userLoggedIn() {
       return this.authToken != null
     },
@@ -88,9 +76,9 @@ export default {
     },
 
     loginLink() {
-      const link = { name: 'logout' }
+      const link = { name: 'login' }
       if (this.userLoggedIn)
-        link.name = 'login'
+        link.query = { logout: '' }
       return link
     }
   },
@@ -121,12 +109,16 @@ export default {
   z-index: var(--z-navbar);
 
   &__logo {
+    padding: 0 15px;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
     width: auto;
     height: 100%;
 
     img {
       width: auto;
-      height: 100%;
+      height: 50%;
       cursor: pointer;
     }
   }
@@ -270,74 +262,6 @@ export default {
   &__link {
     color: var(--primary-lite);
     font-size: 30px;
-  }
-}
-
-@media screen and (max-width: 786px) {
-  .nav {
-    &.active {
-      .menu {
-        &__btn {
-          &::before {
-            transform: translateY(100%) rotate(45deg);
-          }
-          span {
-            margin: 0;
-            width: 0;
-            opacity: 0.3;
-          }
-          &::after {
-            transform: translateY(-100%) rotate(-45deg);
-          }
-        }
-      }
-
-      .nav__block {
-        top: 0;
-      }
-    }
-
-    &__logo {
-      display: none;
-    }
-
-    &__block {
-      padding: var(--h-navbar) 0 0;
-      position: absolute;
-      top: -100%;
-      left: 0;
-      flex-direction: column;
-      justify-content: flex-start;
-      width: 100%;
-      height: 100%;
-      font-size: 18px;
-      background-color: var(--primary-dark);
-      overflow-y: auto;
-      transition: 0.3s;
-    }
-  }
-
-  .menu {
-    display: flex;
-    background-color: var(--secondary);
-    z-index: 3;
-  }
-
-  .contact {
-    padding: 5px;
-
-    &__inner {
-      margin: 20px 0 0;
-      width: var(--w-contact);
-    }
-  }
-
-  .redirect {
-    margin: 20px 0 0;
-    font-size: 18px;
-
-    &__link {
-    }
   }
 }
 </style>

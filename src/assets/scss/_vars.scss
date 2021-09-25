@@ -1,7 +1,7 @@
 $colors : (primary: #f6f6f6,
   primary-lite: #fff,
   primary-dark: #32475b,
-  secondary: #f04949,
+  secondary: #1C3062,
   separator: #bdbdbd,
   separator-lite: #f9f9f9,
   grey: #afafaf,
@@ -17,7 +17,7 @@ $colors : (primary: #f6f6f6,
 );
 
 :root {
-  --separator-alpha: rgba(0, 0, 0, .16);
+  --separator-alpha: rgba(0, 0, 0, .2);
   --shadow-size: 0 1px 2px;
   --separator-shadow: var(--shadow-size) var(--separator-alpha);
 

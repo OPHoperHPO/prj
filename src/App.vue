@@ -1,9 +1,5 @@
 <template>
-  <v-navbar
-    :logo="'/images/logo.png'"
-    :logoText="'Prometheus'"
-    :height="{ pc: '50px', tablet: '40px' }"
-  />
+  <v-navbar :logoText="'Prometheus'" :height="{ pc: '60px', tablet: '40px' }" />
   <router-view />
 </template>
 
@@ -75,7 +71,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
   font-size: 16px;
   text-align: center;
-  background-color: var(--primary);
+  background-color: var(--primary-lite);
+  background-image: url("assets/bg.png");
+  background-size: contain;
+  background-position: bottom;
+  background-repeat: no-repeat;
 }
 
 .container {
@@ -168,78 +168,5 @@ body {
 
 .material-icons-outlined {
   cursor: inherit;
-}
-
-img {
-  &[lazy="loading"],
-  &[lazy="error"] {
-    filter: none !important;
-    transform: scale(0.6) !important;
-  }
-}
-
-.mosha__toast {
-  &.danger {
-    background-color: var(--secondary) !important;
-  }
-  &.warning {
-    background-color: var(--yellow) !important;
-  }
-
-  &__progress {
-    height: 4px !important;
-  }
-
-  &__close-icon {
-    position: absolute;
-    top: 0;
-    right: 5px;
-    cursor: pointer;
-
-    &::before {
-      position: static !important;
-      margin-left: 0 !important;
-    }
-    &:hover::before {
-      color: var(--secondary) !important;
-    }
-  }
-
-  &__content {
-    font-family: "PT Sans", "Helvetica Neue", "Roboto", Helvetica, Arial,
-      sans-serif;
-    color: #212121 !important;
-
-    &__text {
-      font-size: 20px;
-    }
-
-    &__description {
-      font-size: 16px;
-    }
-  }
-}
-
-.vld-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  display: flex;
-  align-content: center;
-  justify-content: center;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(3, 3, 3, 0.16);
-  z-index: 1000;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
 }
 </style>

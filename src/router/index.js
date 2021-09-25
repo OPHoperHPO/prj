@@ -16,15 +16,6 @@ const routes = [
     name: 'login',
     component: () => import('@/views/Login.vue')
   },
-  {
-    path: '/logout',
-    name: 'logout',
-    redirect() {
-      console.log('request to logout')
-
-      return { name: 'login' }
-    }
-  },
 ]
 
 const router = createRouter({
