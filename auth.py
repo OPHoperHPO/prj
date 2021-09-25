@@ -116,7 +116,7 @@ async def register_new_user(user: schemas.User, db: Session = Depends(get_db)):
 @app.post("/api/v1/register_bank_user")
 async def register_new_bank_user(user: schemas.BankUser, db: Session = Depends(get_db)):
     user_model: models.BankUser = models.BankUser(login=user.login)
-    bank_model: models.Bank = models.Bank(user.bank)
+    bank_model: models.Bank = models.Bank(name = user.bank)
     bank = db.query(bank_model).one_or_none()
     if not bank:
         (
@@ -163,4 +163,5 @@ async def register_new_insurer_user(
 
 @app.post("/api/v1/check_pass_phrase")
 async def check_pass_phrase(passphrase: str, user=Depends(manager)):
+    # privateKey = AES.
     pass
