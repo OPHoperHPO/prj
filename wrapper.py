@@ -4,6 +4,9 @@ from pathlib import Path
 from solcx import compile_source
 
 
+
+
+
 class ContractWrapper:
     def __init__(self, rpc_address: str, contract_file: Path):
         self.web3 = web3.Web3(web3.HTTPProvider(rpc_address))
@@ -72,4 +75,138 @@ class ContractWrapper:
     def get_user_address(self, contract_address,
                          account: eth_account.account.LocalAccount):
         contract = self.get_contract_by_address(contract_address)
-        return contract.functions.getContractAddresses().call()
+        # TODO Пофиксить проблему с помощью обработки raw транзакций.
+        #  Как выход создавать новый объект при каждом запросе
+        #  Во время множества асинхронных запросов к функции может произойти коллизия аккаунтов
+        #  и она вернёт ошибку доступа.
+        self.web3.eth.default_account = account.address
+
+        return contract.functions.getContractAddresses().call()[0]
+
+    def get_insurance_contract_address(self, contract_address,
+                                       account: eth_account.account.LocalAccount):
+        contract = self.get_contract_by_address(contract_address)
+        # TODO Пофиксить проблему с помощью обработки raw транзакций.
+        #  Как выход создавать новый объект при каждом запросе
+        #  Во время множества асинхронных запросов к функции может произойти коллизия аккаунтов
+        #  и она вернёт ошибку доступа.
+        self.web3.eth.default_account = account.address
+
+        return contract.functions.getContractAddresses().call()[3]
+
+    def is_active(self, contract_address,
+                  account: eth_account.account.LocalAccount):
+        contract = self.get_contract_by_address(contract_address)
+        # TODO Пофиксить проблему с помощью обработки raw транзакций.
+        #  Как выход создавать новый объект при каждом запросе
+        #  Во время множества асинхронных запросов к функции может произойти коллизия аккаунтов
+        #  и она вернёт ошибку доступа.
+        self.web3.eth.default_account = account.address
+
+        return contract.functions.isActive().call()
+
+    def is_expired(self, contract_address,
+                   account: eth_account.account.LocalAccount):
+        contract = self.get_contract_by_address(contract_address)
+        # TODO Пофиксить проблему с помощью обработки raw транзакций.
+        #  Как выход создавать новый объект при каждом запросе
+        #  Во время множества асинхронных запросов к функции может произойти коллизия аккаунтов
+        #  и она вернёт ошибку доступа.
+        self.web3.eth.default_account = account.address
+
+        return contract.functions.isExpired().call()
+
+    def indebtedness_update(self, amount: int, endTimestamp: int, contract_address,
+                            account: eth_account.account.LocalAccount):
+        contract = self.get_contract_by_address(contract_address)
+        transaction = contract.functions.indebtednessUpdate(
+            amount, endTimestamp
+        ).buildTransaction({
+            'gas': 4712388,
+            'gasPrice': 100000000000,
+            'from': account.address,
+            'nonce': self.web3.eth.get_transaction_count(account.address)
+        })
+        signed_txn = self.web3.eth.account.signTransaction(transaction,
+                                                           private_key=account.privateKey)
+        self.web3.eth.sendRawTransaction(signed_txn.rawTransaction)
+        return True
+
+    def get_contract_info(self, contract_address,
+                          account: eth_account.account.LocalAccount):
+        contract = self.get_contract_by_address(contract_address)
+        # TODO Пофиксить проблему с помощью обработки raw транзакций.
+        #  Как выход создавать новый объект при каждом запросе
+        #  Во время множества асинхронных запросов к функции может произойти коллизия аккаунтов
+        #  и она вернёт ошибку доступа.
+        self.web3.eth.default_account = account.address
+
+        data = contract.functions.getContractInfo().call()
+        nt = ["is_active",
+              "is_expired",
+              "userFullname",
+              "creditContractNumber",
+              "creditContractTimestamp",
+              "contractNumber",
+              "contractTimestamp",
+              "totalAmount",
+              "paymentTimestamp",
+              "paymentAmount",
+              "indebtednessAmount",
+              "indebtednessDate",
+              "contractRisks",
+              "contractRisksType"]
+        return dict(zip(nt, data))
+
+    def createInsurnanceCase(self, reason: str, condition: str,
+                             phoneNumber: str,
+                             email: str,
+                             damageAmount: int,
+                             damageDate: int,
+                             contract_address,
+                             account: eth_account.account.LocalAccount):
+        contract = self.get_contract_by_address(contract_address)
+        transaction = contract.functions.createInsurnanceCase(
+            reason, condition, phoneNumber, email, damageAmount, damageDate
+        ).buildTransaction({
+            'gas': 4712388,
+            'gasPrice': 100000000000,
+            'from': account.address,
+            'nonce': self.web3.eth.get_transaction_count(account.address)
+        })
+        signed_txn = self.web3.eth.account.signTransaction(transaction,
+                                                           private_key=account.privateKey)
+        self.web3.eth.sendRawTransaction(signed_txn.rawTransaction)
+        return self.get_insurance_contract_address(contract_address, account)
+
+    def deactivate(self, contract_address,
+                   account: eth_account.account.LocalAccount):
+        contract = self.get_contract_by_address(contract_address)
+        transaction = contract.functions.deactivateContract(
+        ).buildTransaction({
+            'gas': 4712388,
+            'gasPrice': 100000000000,
+            'from': account.address,
+            'nonce': self.web3.eth.get_transaction_count(account.address)
+        })
+        signed_txn = self.web3.eth.account.signTransaction(transaction,
+                                                           private_key=account.privateKey)
+        self.web3.eth.sendRawTransaction(signed_txn.rawTransaction)
+        return True
+
+    def set_payment_recieved(self, payment_timestamp: int, payment_amount: int,
+                             contract_address,
+                             account: eth_account.account.LocalAccount):
+        contract = self.get_contract_by_address(contract_address)
+        transaction = contract.functions.setPaymentRecieved(
+            payment_timestamp, payment_amount
+        ).buildTransaction({
+            'gas': 4712388,
+            'gasPrice': 100000000000,
+            'from': account.address,
+            'nonce': self.web3.eth.get_transaction_count(account.address)
+        })
+        signed_txn = self.web3.eth.account.signTransaction(transaction,
+                                                           private_key=account.privateKey)
+        self.web3.eth.sendRawTransaction(signed_txn.rawTransaction)
+        return True
