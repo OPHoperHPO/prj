@@ -27,7 +27,9 @@ class BlockchainWrapper:
     def create_wallet(passfrase):
         cipher = AES.new(passfrase, AES.MODE_CBC)
         nonce = cipher.nonce
-        ciphertext, tag = cipher.encrypt_and_digest(web3.eth.account.create(time.time_ns()))
+        ciphertext, tag = cipher.encrypt_and_digest(
+            web3.eth.account.create(time.time_ns())
+        )
         return nonce, ciphertext, tag
 
     def create_contract(

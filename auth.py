@@ -10,6 +10,7 @@ from fastapi import Depends
 from fastapi_login.exceptions import InvalidCredentialsException
 import hashlib, os
 from blockchain_wrapper import BlockchainWrapper
+from Crypto.Cipher import AES
 
 secret = "27416c619e2583dd7023ff9590b2d931458a11d58595971c96f566d1d5fa533c46413dca20bf7c99e12776a9da8bb3bdd2fa2cd65fb6a4\
 8ac7a6bc3517b8d95229666d88887c1d8170907cce7ddb1d3b0e4dc6cc1a5f373d5293c77d0b042b8a5d965baeb28bf6006a732d3242e77c4f2b8e75\
@@ -90,10 +91,13 @@ async def register_new_user(user: schemas.User, db: Session = Depends(get_db)):
     user_model: models.Client = models.Client(login=user.login)
     user_by_login = user_loader(user.login)
     if user_by_login:
-        return JSONResponse(status_code=400, content={
-            "result": "error",
-            "result_description": "User with this email already exists"
-        })
+        return JSONResponse(
+            status_code=400,
+            content={
+                "result": "error",
+                "result_description": "User with this email already exists",
+            },
+        )
     password, salt = hash_password(user.password)
     user_model.password = password
     user_model.salt = salt
@@ -101,9 +105,12 @@ async def register_new_user(user: schemas.User, db: Session = Depends(get_db)):
     db.add(user_model)
     db.commit()
     db.flush()
-    return JSONResponse(status_code=200, content={
-        "status": "success",
-    })
+    return JSONResponse(
+        status_code=200,
+        content={
+            "status": "success",
+        },
+    )
 
 
 @app.post("/api/v1/register_bank_user")
@@ -112,7 +119,11 @@ async def register_new_bank_user(user: schemas.BankUser, db: Session = Depends(g
     bank_model: models.Bank = models.Bank(user.bank)
     bank = db.query(bank_model).one_or_none()
     if not bank:
-        bank_model.blockchain_wallet = BlockchainWrapper.create_wallet(user.passphrase)
+        (
+            bank_model.nonce,
+            bank_model.blockchain_wallet,
+            bank_model.tag,
+        ) = BlockchainWrapper.create_wallet(user.passphrase)
         db.add(bank_model)
         db.commit()
         db.flush()
@@ -126,12 +137,18 @@ async def register_new_bank_user(user: schemas.BankUser, db: Session = Depends(g
 
 
 @app.post("/api/v1/register_insurer_user")
-async def register_new_insurer_user(user: schemas.InsurerUser, db: Session = Depends(get_db)):
+async def register_new_insurer_user(
+    user: schemas.InsurerUser, db: Session = Depends(get_db)
+):
     user_model: models.InsurerUser = models.InsurerUser(login=user.login)
     insurer_model: models.Insurer = models.Insurer(user.insurer)
     insurer = db.query(insurer_model).one_or_none()
     if not insurer:
-        insurer_model.blockchain_wallet = BlockchainWrapper.create_wallet(user.passphrase)
+        (
+            insurer_model.nonce,
+            insurer_model.blockchain_wallet,
+            insurer_model.tag,
+        ) = BlockchainWrapper.create_wallet(user.passphrase)
         db.add(insurer_model)
         db.commit()
         db.flush()
@@ -142,3 +159,8 @@ async def register_new_insurer_user(user: schemas.InsurerUser, db: Session = Dep
     db.add(user_model)
     db.commit()
     db.flush()
+
+
+@app.post("/api/v1/check_pass_phrase")
+async def check_pass_phrase(passphrase: str, user=Depends(manager)):
+
