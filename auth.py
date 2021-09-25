@@ -163,4 +163,4 @@ async def register_new_insurer_user(
 
 @app.post("/api/v1/check_pass_phrase")
 async def check_pass_phrase(passphrase: str, user=Depends(manager)):
-
+    pass
