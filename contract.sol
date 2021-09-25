@@ -21,15 +21,20 @@ contract InsuranceCaseContract{
 
 
     constructor(
-        Contract parentAddress,
+        address parentAddress,
         string memory reason, // Причина страхового случая
         string memory condition, // Обстоятельства страхового случая
         string memory phoneNumber, // Номер заявителя
         string memory  email, //  Email заявителя
         uint256 damageAmount,
-        uint256 damageDate) public isUser {
+        uint256 damageDate) public {
 
-       _parentContractAddress = parentAddress;
+        Contract parentContract = Contract(parentAddress);
+
+        require(parentContract.isActive() && !parentContract.isExpired(), "Contract Expired");
+        require(parentContract.userAddress() == msg.sender, "Only user can create this contract");
+
+        _parentContractAddress = parentContract;
        _reason = reason;
        _condition = condition;
        _damageAmount = damageAmount;
@@ -71,7 +76,9 @@ contract InsuranceCaseContract{
         _;
     }
 
-    function getInfo() public isUserOrBankOrInsCompany
+
+
+    function getInfo() external view isUserOrBankOrInsCompany
     returns(address, string memory, string memory, string memory, string memory,
     uint256, uint256, bool, bool, uint256)  {
         return(address(_parentContractAddress),
@@ -87,7 +94,10 @@ contract InsuranceCaseContract{
     }
 
     function confirm(uint256 payment_amount) public isInsCompany  {
+        require(!_parentContractAddress.isExpired() && _parentContractAddress.isActive(),
+            "Parent Contract is deactivated or expired");
         require(!_isClosed, "Contract deactivated");
+
         _isPaymentConfirmed = true;
         _paymentAmount = payment_amount; // Страховая назначает свой размер компенсации
         emit InsuranceCaseConfirmed(address(this), block.timestamp);
@@ -100,8 +110,10 @@ contract InsuranceCaseContract{
         string memory  email, //  Email заявителя
         uint256 damageAmount,
         uint256 damageDate) public isInsCompany {
-
+        require(!_parentContractAddress.isExpired() && _parentContractAddress.isActive(),
+            "Parent Contract is deactivated or expired");
         require(!_isClosed, "Contract deactivated");
+
        _reason = reason;
        _condition = condition;
        _damageAmount = damageAmount;
@@ -135,24 +147,11 @@ contract Contract {
     uint256 private contractRisks; // Страховые риски: вероятность от 0 до 1000000
     string private contractRisksType; // Страховые риски: тип
 
-    string private insuranceCaseReason; // Причина страхового случая
-    string private insuranceCaseCondition; // Обстоятельства страхового случая
-    string private insuranceCasePhoneNumber; // Номер заявителя
-    string private insuranceCaseEmail; //  Email заявителя
-    uint256 private insuranceCaseHappenedDate; // Дата страхового события в UNIX timestamp
-    uint256 private insuranceCaseDamageAmount; // Размер ущерба страхового случая
-    bool private isInsuranceCasePaymentConfirmed; // Подтверждёна ли выплата по обращению
-    uint256 private insuranceCasePaymentAmount; // Выплата по страховому случаю.
-
+    InsuranceCaseContract public insuranceContract; // Контракт страхового случая.
 
     event ContractCreated(address indexed contractAddress, uint256 timestamp);  // контракт создался (Выставлен счёт на оплату)
     event ContractActivated(address indexed contractAddress, uint256 timestamp); // контракт активирован
     event ContractDeactivated(address indexed contractAddress, uint256 timestamp); // контракт деактивирован
-
-    event InsuranceCaseConfirmed(address indexed contractAddress, uint256 timestamp); // Получено разрешение на выплату компенсации
-    event InsuranceCaseRegistered(address indexed contractAddress, uint256 timestamp); // Зарегистрировано страховое обращение
-    event InsuranceCaseUpdated(address indexed contractAddress, uint256 timestamp); // Страховое обращение обновлено
-
 
 
     constructor(address bank, address user,
@@ -206,8 +205,14 @@ contract Contract {
         _;
     }
 
+    function isActive() external view isUserOrBankOrInsCompany returns(bool){
+        return(is_active);
+    }
+    function isExpired() external view isUserOrBankOrInsCompany returns(bool){
+        return(is_expired);
+    }
 
-    function getContractData() public isUserOrBankOrInsCompany returns(
+    function getContractData() external view isUserOrBankOrInsCompany returns(
                 address, address,
                 bool,bool, string memory, uint256, uint256, uint256, uint256,
                 uint256, uint256,uint256,uint256, string memory){
@@ -230,44 +235,19 @@ contract Contract {
 );
     }
 
-    function confirmInsuranceCase(uint256 payment_amount) public isInsCompany {
-        isInsuranceCasePaymentConfirmed = true;
-        insuranceCasePaymentAmount = payment_amount; // Страховая назначает свой размер компенсации
-        emit InsuranceCaseConfirmed(address(this), block.timestamp);
-    }
-
-    function updateInsuranceCaseInfo( string memory reason, // Причина страхового случая
-        string memory condition, // Обстоятельства страхового случая
-        string memory phoneNumber, // Номер заявителя
-        string memory  email, //  Email заявителя
-        uint256 damageAmount,
-        uint256 damageDate) public isInsCompany {
-
-       insuranceCaseReason = reason;
-       insuranceCaseCondition = condition;
-       insuranceCaseDamageAmount = damageAmount;
-       insuranceCaseHappenedDate = damageDate;
-       insuranceCaseEmail = email;
-       insuranceCasePhoneNumber = phoneNumber;
-       emit InsuranceCaseUpdated(address(this),  block.timestamp);
-        }
-
-    function informInsuranceCase( string memory reason, // Причина страхового случая
+    function createInsurnanceCase(
+        string memory reason, // Причина страхового случая
         string memory condition, // Обстоятельства страхового случая
         string memory phoneNumber, // Номер заявителя
         string memory  email, //  Email заявителя
         uint256 damageAmount,
         uint256 damageDate) public isUser {
-       insuranceCaseReason = reason;
-       insuranceCaseCondition = condition;
-       insuranceCaseDamageAmount = damageAmount;
-       insuranceCaseHappenedDate = damageDate;
-       insuranceCaseEmail = email;
-       insuranceCasePhoneNumber = phoneNumber;
-       isInsuranceCasePaymentConfirmed = false;
-       insuranceCasePaymentAmount = 0;
-       emit InsuranceCaseRegistered(address(this),  block.timestamp);
 
+        require(is_active, "Contract is deactivated");
+        require(!is_expired, "Contract is expired");
+
+        insuranceContract = new InsuranceCaseContract(
+            address(this), reason, condition, phoneNumber, email, damageAmount, damageDate);
     }
 
     // Деактивирует контракт по запросу пользователя или страховой компании
