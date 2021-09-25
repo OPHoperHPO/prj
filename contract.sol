@@ -1,153 +1,10 @@
-// SPDX-License-Identifier: GPL-3.0
+// SPDX-License-Identifier: MIT
 
 pragma solidity >=0.7.0 <0.9.0;
 
-contract InsuranceCaseContract{
-    Contract private _parentContractAddress; // Связанный договора о страховании
-    string private _reason; // Причина страхового случая
-    string private _condition; // Обстоятельства страхового случая
-    string private _phoneNumber; // Номер заявителя
-    string private _email; //  Email заявителя
-    uint256 private _happenedDate; // Дата страхового события в UNIX timestamp
-    uint256 private _damageAmount; // Размер ущерба страхового случая
-    bool private _isPaymentConfirmed; // Подтверждёна ли выплата по обращению
-    bool private _isClosed; // Закрыто ли обращение
-    uint256 private _paymentAmount; // Выплата по страховому случаю.
-    bool private _isPaymentConfirmedByBank; // Подтверждена ли выплата клиенту со стороны банка
-    string private _rejectCause; // Причина отказа в выплате
-
-    event InsuranceCaseConfirmed(address indexed contractAddress, uint256 timestamp); // Получено разрешение на выплату компенсации
-    event InsuranceCaseCreated(address indexed contractAddress, uint256 timestamp); // Зарегистрировано страховое обращение
-    event InsuranceCaseClosedRejected(address indexed contractAddress, uint256 timestamp, string cause); // Обращение закрыто и отклонено
-    event InsuranceCaseClosedConfirmed(address indexed contractAddress, uint256 timestamp); // Обращение закрыто и выплачена компенсация
-    event InsuranceCaseUpdated(address indexed contractAddress, uint256 timestamp); // Страховое обращение обновлено
-
-
-    constructor(
-        address parentAddress,
-        string memory reason, // Причина страхового случая
-        string memory condition, // Обстоятельства страхового случая
-        string memory phoneNumber, // Номер заявителя
-        string memory  email, //  Email заявителя
-        uint256 damageAmount,
-        uint256 damageDate) public {
-
-        Contract parentContract = Contract(parentAddress);
-
-        require(parentContract.isActive() && !parentContract.isExpired(), "Contract Expired");
-        require(parentContract.userAddress() == msg.sender, "Only user can create this contract");
-
-        _parentContractAddress = parentContract;
-       _reason = reason;
-       _condition = condition;
-       _damageAmount = damageAmount;
-       _happenedDate = damageDate;
-       _email = email;
-       _phoneNumber = phoneNumber;
-
-       _isPaymentConfirmed = false;
-       _paymentAmount = 0;
-       _isClosed = false;
-       emit InsuranceCaseCreated(address(this),  block.timestamp);
-    }
-
-    modifier isBank() {
-        require(msg.sender == _parentContractAddress.bankAddress(), "Caller is not bank");
-        _;
-    }
-
-    modifier isInsCompany() {
-        require(msg.sender == _parentContractAddress.insCompAddress(), "Caller is not Ins Company");
-        _;
-    }
-
-    modifier isUser() {
-        require(msg.sender == _parentContractAddress.userAddress(), "Caller is not user");
-        _;
-    }
-
-    modifier isUserOrInsCompany(){
-        require(msg.sender == _parentContractAddress.userAddress() || msg.sender == _parentContractAddress.insCompAddress(), "Caller is not user or Ins Company");
-        _;
-    }
-
-
-    modifier isUserOrBankOrInsCompany(){
-        require(msg.sender == _parentContractAddress.userAddress() || msg.sender == _parentContractAddress.insCompAddress()
-            || msg.sender == _parentContractAddress.bankAddress(),
-            "Caller is not user or Ins Company or Bank");
-        _;
-    }
-
-
-
-    function getInfo() external view isUserOrBankOrInsCompany
-    returns(address, string memory, string memory,
-        string memory, string memory,
-    uint256, uint256, bool, bool, uint256, bool, string memory)  {
-        return(address(_parentContractAddress),
-        _reason, _condition, _phoneNumber,
-                _email, _happenedDate, _damageAmount,
-        _isPaymentConfirmed, _isClosed, _paymentAmount,
-        _isPaymentConfirmedByBank, _rejectCause);
-    }
-
-    function closeReject(string memory cause) public isInsCompany {
-        require(!_isClosed, "Contract is already closed");
-        _isClosed = true;
-        _rejectCause = cause;
-        emit InsuranceCaseClosedRejected(address(this), block.timestamp, cause);
-
-    }
-
-    function confirmPaymentFromBank() public isBank {
-        require(!_parentContractAddress.isExpired() && _parentContractAddress.isActive(),
-            "Parent Contract is deactivated or expired");
-        require(!_isClosed, "Contract deactivated");
-
-        _isPaymentConfirmedByBank = true;
-        _isClosed = true; // Закрываем обращение по причине подтверждения выплаты клиенту компенсации со стороны банка
-        emit InsuranceCaseClosedConfirmed(address(this), block.timestamp);
-    }
-
-    function confirm(uint256 payment_amount) public isInsCompany  {
-        require(!_parentContractAddress.isExpired() && _parentContractAddress.isActive(),
-            "Parent Contract is deactivated or expired");
-        require(!_isClosed, "Contract deactivated");
-
-        _isPaymentConfirmed = true;
-        _paymentAmount = payment_amount; // Страховая назначает свой размер компенсации
-        emit InsuranceCaseConfirmed(address(this), block.timestamp);
-        // Даём банку знать о том, что подтверждён страховой случай, а значит он должен обновить информацию о задолжности в этот момент
-        // Обработать платёж и подтвердить выплату компенсации клиенту.
-    }
-
-    function update(
-        string memory reason, // Причина страхового случая
-        string memory condition, // Обстоятельства страхового случая
-        string memory phoneNumber, // Номер заявителя
-        string memory  email, //  Email заявителя
-        uint256 damageAmount,
-        uint256 damageDate) public isInsCompany {
-        require(!_parentContractAddress.isExpired() && _parentContractAddress.isActive(),
-            "Parent Contract is deactivated or expired");
-        require(!_isClosed, "Contract deactivated");
-
-       _reason = reason;
-       _condition = condition;
-       _damageAmount = damageAmount;
-       _happenedDate = damageDate;
-       _email = email;
-       _phoneNumber = phoneNumber;
-
-       emit InsuranceCaseUpdated(address(this),  block.timestamp);
-        }
-
-}
-
 contract Contract {
 
-    address public userAddress;  // Адрес клиента в блокчейне
+    address private userAddress;  // Адрес клиента в блокчейне
     address public bankAddress;  // Адрес банка в блокчейне
     address public insCompAddress;  // Адрес страховой в блокчейне
 
@@ -155,6 +12,8 @@ contract Contract {
     bool private is_expired;  // Истёк ли контракт по дате
 
     // Данные об договоре
+    string public bankName; // Название банка
+    string public insCompName; // Название страховой компании
     string private userFullname; // ФИО
     uint256 private creditContractNumber; // Номер кредитного договора
     uint256 private creditContractTimestamp; //Дата кредитного договора в UNIX timestamp
@@ -176,6 +35,8 @@ contract Contract {
 
 
     constructor(address bank, address user,
+                string memory _bankName,
+                string memory _insCompName,
                 string memory luserFullname,
                 uint256  lcreditContractNumber,
                 uint256  lcreditContractTimestamp,
@@ -184,6 +45,8 @@ contract Contract {
                 string memory lcontractRisksType) {
 
         // Вносим инфу о договоре
+        insCompName = _insCompName;
+        bankName = _bankName;
         userFullname = luserFullname;
         creditContractTimestamp = lcreditContractTimestamp;
         creditContractNumber = lcreditContractNumber;
@@ -255,8 +118,6 @@ contract Contract {
     uint256,
     uint256,
     string memory
-
-
     ){
         return(
         is_active,
@@ -330,5 +191,151 @@ contract Contract {
 
         emit ContractActivated(address(this), block.timestamp);
     }
+
+}
+
+contract InsuranceCaseContract{
+    Contract private _parentContractAddress; // Связанный договора о страховании
+    string private _reason; // Причина страхового случая
+    string private _condition; // Обстоятельства страхового случая
+    string private _phoneNumber; // Номер заявителя
+    string private _email; //  Email заявителя
+    uint256 private _happenedDate; // Дата страхового события в UNIX timestamp
+    uint256 private _damageAmount; // Размер ущерба страхового случая
+    bool private _isPaymentConfirmed; // Подтверждёна ли выплата по обращению
+    bool private _isClosed; // Закрыто ли обращение
+    uint256 private _paymentAmount; // Выплата по страховому случаю.
+    bool private _isPaymentConfirmedByBank; // Подтверждена ли выплата клиенту со стороны банка
+    string private _rejectCause; // Причина отказа в выплате
+
+    event InsuranceCaseConfirmed(address indexed contractAddress, uint256 timestamp); // Получено разрешение на выплату компенсации
+    event InsuranceCaseCreated(address indexed contractAddress, uint256 timestamp); // Зарегистрировано страховое обращение
+    event InsuranceCaseClosedRejected(address indexed contractAddress, uint256 timestamp, string cause); // Обращение закрыто и отклонено
+    event InsuranceCaseClosedConfirmed(address indexed contractAddress, uint256 timestamp); // Обращение закрыто и выплачена компенсация
+    event InsuranceCaseUpdated(address indexed contractAddress, uint256 timestamp); // Страховое обращение обновлено
+
+
+    constructor(
+        address parentAddress,
+        string memory reason, // Причина страхового случая
+        string memory condition, // Обстоятельства страхового случая
+        string memory phoneNumber, // Номер заявителя
+        string memory  email, //  Email заявителя
+        uint256 damageAmount,
+        uint256 damageDate) public {
+
+        Contract parentContract = Contract(parentAddress);
+        ( address userAddress, , , ) = parentContract.getContractAddresses();
+        require(parentContract.isActive() && !parentContract.isExpired(), "Contract Expired");
+        require( userAddress == msg.sender, "Only user can create this contract");
+
+        _parentContractAddress = parentContract;
+       _reason = reason;
+       _condition = condition;
+       _damageAmount = damageAmount;
+       _happenedDate = damageDate;
+       _email = email;
+       _phoneNumber = phoneNumber;
+
+       _isPaymentConfirmed = false;
+       _paymentAmount = 0;
+       _isClosed = false;
+       emit InsuranceCaseCreated(address(this),  block.timestamp);
+    }
+
+    modifier isBank() {
+        require(msg.sender == _parentContractAddress.bankAddress(), "Caller is not bank");
+        _;
+    }
+
+    modifier isInsCompany() {
+        require(msg.sender == _parentContractAddress.insCompAddress(), "Caller is not Ins Company");
+        _;
+    }
+
+    modifier isUser() {
+        ( address userAddress, , , ) = _parentContractAddress.getContractAddresses();
+        require(msg.sender == userAddress, "Caller is not user");
+        _;
+    }
+
+    modifier isUserOrInsCompany(){
+        ( address userAddress, , , ) = _parentContractAddress.getContractAddresses();
+        require(msg.sender == userAddress || msg.sender == _parentContractAddress.insCompAddress(), "Caller is not user or Ins Company");
+        _;
+    }
+
+
+    modifier isUserOrBankOrInsCompany(){
+        ( address userAddress, , , ) = _parentContractAddress.getContractAddresses();
+        require(msg.sender == userAddress || msg.sender == _parentContractAddress.insCompAddress()
+            || msg.sender == _parentContractAddress.bankAddress(),
+            "Caller is not user or Ins Company or Bank");
+        _;
+    }
+
+
+
+    function getInfo() external view isUserOrBankOrInsCompany
+    returns(address, string memory, string memory,
+        string memory, string memory,
+    uint256, uint256, bool, bool, uint256, bool, string memory)  {
+        return(address(_parentContractAddress),
+        _reason, _condition, _phoneNumber,
+                _email, _happenedDate, _damageAmount,
+        _isPaymentConfirmed, _isClosed, _paymentAmount,
+        _isPaymentConfirmedByBank, _rejectCause);
+    }
+
+    function closeReject(string memory cause) public isInsCompany {
+        require(!_isClosed, "Contract is already closed");
+        _isClosed = true;
+        _rejectCause = cause;
+        emit InsuranceCaseClosedRejected(address(this), block.timestamp, cause);
+
+    }
+
+    function confirmPaymentFromBank() public isBank {
+        require(!_parentContractAddress.isExpired() && _parentContractAddress.isActive(),
+            "Parent Contract is deactivated or expired");
+        require(!_isClosed, "Contract deactivated");
+
+        _isPaymentConfirmedByBank = true;
+        _isClosed = true; // Закрываем обращение по причине подтверждения выплаты клиенту компенсации со стороны банка
+        emit InsuranceCaseClosedConfirmed(address(this), block.timestamp);
+    }
+
+    function confirm(uint256 payment_amount) public isInsCompany  {
+        require(!_parentContractAddress.isExpired() && _parentContractAddress.isActive(),
+            "Parent Contract is deactivated or expired");
+        require(!_isClosed, "Contract deactivated");
+
+        _isPaymentConfirmed = true;
+        _paymentAmount = payment_amount; // Страховая назначает свой размер компенсации
+        emit InsuranceCaseConfirmed(address(this), block.timestamp);
+        // Даём банку знать о том, что подтверждён страховой случай, а значит он должен обновить информацию о задолжности в этот момент
+        // Обработать платёж и подтвердить выплату компенсации клиенту.
+    }
+
+    function update(
+        string memory reason, // Причина страхового случая
+        string memory condition, // Обстоятельства страхового случая
+        string memory phoneNumber, // Номер заявителя
+        string memory  email, //  Email заявителя
+        uint256 damageAmount,
+        uint256 damageDate) public isInsCompany {
+        require(!_parentContractAddress.isExpired() && _parentContractAddress.isActive(),
+            "Parent Contract is deactivated or expired");
+        require(!_isClosed, "Contract deactivated");
+
+       _reason = reason;
+       _condition = condition;
+       _damageAmount = damageAmount;
+       _happenedDate = damageDate;
+       _email = email;
+       _phoneNumber = phoneNumber;
+
+       emit InsuranceCaseUpdated(address(this),  block.timestamp);
+        }
 
 }
