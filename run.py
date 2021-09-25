@@ -1,7 +1,7 @@
 import time
 from pathlib import Path
 
-from wrapper import ContractWrapper
+from wrapper import ContractWrapper, InsurnanceCaseContractWrapper
 
 contract = ContractWrapper("http://127.0.0.1:8545", Path("contract.sol"), "Contract")
 insurer_account = contract.web3.eth.account.privateKeyToAccount(
@@ -46,6 +46,9 @@ print("Insurance Case Address:", contract.createInsurnanceCase(
     contract_address=contract_address,
     account=user_account
 ))
+
+ins_contract = InsurnanceCaseContractWrapper("http://127.0.0.1:8545", Path("contract.sol"), "InsuranceCaseContract")
+print(ins_contract.get_contract_info(contract.get_insurance_contract_address(contract_address, insurer_account), user_account))
 
 
 

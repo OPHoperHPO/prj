@@ -1,7 +1,8 @@
 import web3
 import eth_account
 from pathlib import Path
-from solcx import compile_source
+from solcx import compile_source, install_solc
+install_solc(version="latest")
 
 
 class BaseContractWrapper:
