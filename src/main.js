@@ -1,0 +1,12 @@
+import { createApp } from 'vue'
+import App from './App.vue'
+import router from './router'
+import store from './store'
+import VueLoading from 'vue-loading-overlay'
+import 'material-icons/iconfont/material-icons.css'
+
+window.vue = createApp(App)
+  .use(store)
+  .use(router)
+  .use(VueLoading)
+  .mount('#app')

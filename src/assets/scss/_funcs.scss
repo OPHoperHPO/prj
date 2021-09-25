@@ -1,0 +1,26 @@
+@function hexToRGB($hex) {
+  @return red($hex),
+  green($hex),
+  blue($hex);
+}
+
+@function vara($name, $alpha) {
+  @return rgba(var(#{$name}-rgb), $alpha);
+}
+
+
+$maxWidth: 1920;
+$mobWidth: 768;
+$maxHeight: 1080;
+
+@mixin adaptiv-font($pcSize, $mobSize, $minWidth) {
+  $addSize: $pcSize - $mobSize;
+  $maxWidth: $maxWidth - $minWidth;
+  font-size: calc(#{$mobSize + px} + #{$addSize} * ((100vw - #{$minWidth + px}) / #{$maxWidth}));
+}
+
+@mixin adaptiv-font-mobile($pcSize, $mobSize, $minWidth) {
+  $addSize: $pcSize - $mobSize;
+  $mobWidth: $mobWidth - $minWidth;
+  font-size: calc(#{$mobSize + px} + #{$addSize} * ((100vw - #{$minWidth + px}) / #{$mobWidth}));
+}

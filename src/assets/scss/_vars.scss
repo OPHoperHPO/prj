@@ -1,0 +1,44 @@
+$colors : (primary: #f6f6f6,
+  primary-lite: #fff,
+  primary-dark: #32475b,
+  secondary: #f04949,
+  separator: #bdbdbd,
+  separator-lite: #f9f9f9,
+  grey: #afafaf,
+  green: #12e12d,
+  yellow: #eca82f,
+  orange: #fc8507,
+  orange-lite: #fff7da,
+  pink: #F92495,
+
+  green-dark: #169b28,
+  blackyblue: #2c3e50,
+  blue: #001eff,
+);
+
+:root {
+  --separator-alpha: rgba(0, 0, 0, .16);
+  --shadow-size: 0 1px 2px;
+  --separator-shadow: var(--shadow-size) var(--separator-alpha);
+
+  @each $key,
+  $value in $colors {
+    --#{$key} : #{$value};
+    --#{$key}-rgb : #{hexToRGB($value)};
+  }
+
+  --z-modal: 8;
+  --z-navbar: 7;
+  --z-sidebar: 6;
+
+  --w-step: 150px;
+  --w-contact: 160px;
+  --w-contact-tablet: 180px;
+}
+
+@media screen and (max-width: 786px) {
+  * {
+    --h-navbar: var(--h-navbar-tablet);
+    --w-contact: var(--w-contact-tablet);
+  }
+}
