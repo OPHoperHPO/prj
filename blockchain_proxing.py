@@ -27,7 +27,7 @@ async def create_contract(
                 "result_description": "Only insurer can create contract",
             },
         )
-    contract = ContractWrapper("http://127.0.0.1:8545", Path("contract.sol"))
+    contract = ContractWrapper("http://127.0.0.1:8545", Path("contract.sol"), "Contract")
     new_account = False
     insurer_account = None
     bank_account = None
