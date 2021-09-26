@@ -50,6 +50,7 @@ requests==2.26.0
 rlp==2.0.1
 semantic-version==2.8.5
 six==1.16.0
+solc==0.0.0a0
 SQLAlchemy==1.4.25
 starlette==0.14.2
 tomli==1.2.1

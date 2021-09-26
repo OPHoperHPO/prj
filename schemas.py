@@ -25,3 +25,18 @@ class Contract(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class CreateContract(BaseModel):
+    FIO: str
+    insurer_date: int
+    bank_date: int
+    insurer_number: int
+    bank_number: int
+    bank_name: str
+    insurer_name: str
+    email: str
+    amount: int
+    type: str
+    client_password: str
+    client_passphrase: str

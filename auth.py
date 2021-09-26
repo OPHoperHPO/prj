@@ -282,3 +282,14 @@ async def get_contract(contruct_number: str, user=Depends(manager), db=Depends(g
         JSONResponse(status_code=404, content={"result": "Not found"})
 
     return contract
+
+
+def get_pk(passphrase: str, user):
+
+    cipher_key = hashlib.sha256(passphrase.encode()).digest()
+    cipher_config = AES.new(cipher_key, AES.MODE_CBC, user.cipher_initialization_vector)
+    private_wallet_key = cipher_config.decrypt(user.blockchain_wallet)
+    if hashlib.sha256(private_wallet_key).digest() == user.wallet_hash:
+        return private_wallet_key
+    else:
+        return None
