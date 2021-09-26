@@ -17,3 +17,11 @@ class BankUser(User):
 
 class InsurerUser(User):
     insurer: str
+
+
+class Contract(BaseModel):
+    address: str
+    contract_number: str
+
+    class Config:
+        orm_mode = True

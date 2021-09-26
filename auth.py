@@ -11,6 +11,7 @@ from fastapi_login.exceptions import InvalidCredentialsException
 import hashlib, os
 from blockchain_wrapper import BlockchainWrapper
 from Crypto.Cipher import AES
+from sqlalchemy import or_
 
 secret = "27416c619e2583dd7023ff9590b2d931458a11d58595971c96f566d1d5fa533c46413dca20bf7c99e12776a9da8bb3bdd2fa2cd65fb6a4\
 8ac7a6bc3517b8d95229666d88887c1d8170907cce7ddb1d3b0e4dc6cc1a5f373d5293c77d0b042b8a5d965baeb28bf6006a732d3242e77c4f2b8e75\
@@ -87,6 +88,11 @@ async def login(response: JSONResponse, data: OAuth2PasswordRequestForm = Depend
             else 1
             if isinstance(user, models.InsurerUserWithInsurer)
             else 2,
+            "wallet_address": user.wallet_address
+            if isinstance(user, models.Client)
+            else user.bank.wallet_address
+            if isinstance(user, models.BankUser)
+            else user.insurer.wallet_address,
         },
     )
 
@@ -115,8 +121,10 @@ async def register_new_user(user: schemas.User, db: Session = Depends(get_db)):
         user_model.cipher_initialization_vector,
         user_model.blockchain_wallet,
         user_model.wallet_hash,
+        user_model.wallet_address,
     ) = BlockchainWrapper.create_wallet(user.passphrase)
     user_model.wallet_hash = user_model.wallet_hash.digest()
+
     db.add(user_model)
     db.commit()
     db.flush()
@@ -148,6 +156,7 @@ async def register_new_bank_user(user: schemas.BankUser, db: Session = Depends(g
             bank_model.cipher_initialization_vector,
             bank_model.blockchain_wallet,
             bank_model.wallet_hash,
+            bank_model.wallet_address,
         ) = BlockchainWrapper.create_wallet(user.passphrase)
         bank_model.wallet_hash = bank_model.wallet_hash.digest()
         db.add(bank_model)
@@ -188,6 +197,7 @@ async def register_new_insurer_user(
             insurer_model.cipher_initialization_vector,
             insurer_model.blockchain_wallet,
             insurer_model.wallet_hash,
+            insurer_model.wallet_address,
         ) = BlockchainWrapper.create_wallet(user.passphrase)
         insurer_model.wallet_hash = insurer_model.wallet_hash.digest()
         db.add(insurer_model)
@@ -218,7 +228,10 @@ async def check_pass_phrase(passphrase: str, user=Depends(manager), db=Depends(g
         cipher_key, AES.MODE_CBC, checking_entry.cipher_initialization_vector
     )
     private_wallet_key = cipher_config.decrypt(checking_entry.blockchain_wallet)
-    return hashlib.sha256(private_wallet_key).digest() == checking_entry.wallet_hash
+    return {
+        "result": hashlib.sha256(private_wallet_key).digest()
+        == checking_entry.wallet_hash,
+    }
 
 
 @app.post("/api/v1/get_encrypted_private_key")
@@ -230,3 +243,42 @@ async def get_encrypted_private_key(user=Depends(manager)):
         )
 
     return user.blockchain_wallet.hex()
+
+
+@app.get("/api/v1/search_contract/{contruct_number}", response_model=schemas.Contract)
+async def get_contract(contruct_number: str, user=Depends(manager), db=Depends(get_db)):
+    if isinstance(user, models.BankUser):
+        contract = (
+            db.query(models.Contract)
+            .filter(
+                or_(models.Contract.bank_id == user.bank_id),
+                models.Contract.contract_number == contruct_number,
+            )
+            .one_or_none()
+        )
+    elif isinstance(user, models.InsurerUser):
+        contract = (
+            db.query(models.Contract)
+            .filter(
+                or_(
+                    models.Contract.insurer_id == user.id,
+                ),
+                models.Contract.contract_number == contruct_number,
+            )
+            .one_or_none()
+        )
+    else:
+        contract = (
+            db.query(models.Contract)
+            .filter(
+                or_(
+                    models.Contract.client_id == user.id,
+                ),
+                models.Contract.contract_number == contruct_number,
+            )
+            .one_or_none()
+        )
+    if contract is None:
+        JSONResponse(status_code=404, content={"result": "Not found"})
+
+    return contract

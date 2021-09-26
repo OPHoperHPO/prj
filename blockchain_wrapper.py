@@ -31,8 +31,16 @@ class BlockchainWrapper:
         key = hashlib.sha256(passfrase.encode()).digest()
         initialization_vector = Random.new().read(AES.block_size)
         cipher_config = AES.new(key, AES.MODE_CBC, initialization_vector)
-        pk = web3.eth.account.create(time.time_ns()).privateKey
-        return initialization_vector, cipher_config.encrypt(pk), hashlib.sha256(pk)
+        acc = web3.eth.account.create(time.time_ns())
+        pk = acc.privateKey
+        address = acc.address
+
+        return (
+            initialization_vector,
+            cipher_config.encrypt(pk),
+            hashlib.sha256(pk),
+            address,
+        )
 
     def create_contract(
         self, insurer: models.Insurer, bank: models.Bank, client: models.Client
