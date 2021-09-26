@@ -101,7 +101,7 @@ async def register_new_user(user: schemas.User, db: Session = Depends(get_db)):
     password, salt = hash_password(user.password)
     user_model.password = password
     user_model.salt = salt
-    user_model.blockchain_wallet = BlockchainWrapper.create_wallet(user.passphrase)
+    user_model.cipher_initialization_vector, user_model.blockchain_wallet = BlockchainWrapper.create_wallet(user.passphrase)
     db.add(user_model)
     db.commit()
     db.flush()
@@ -116,10 +116,11 @@ async def register_new_user(user: schemas.User, db: Session = Depends(get_db)):
 @app.post("/api/v1/register_bank_user")
 async def register_new_bank_user(user: schemas.BankUser, db: Session = Depends(get_db)):
     user_model: models.BankUser = models.BankUser(login=user.login)
-    bank_model: models.Bank = models.Bank(name = user.bank)
+    bank_model: models.Bank = models.Bank(name=user.bank)
     bank = db.query(bank_model).one_or_none()
+
     if not bank:
-        bank_model.blockchain_wallet= BlockchainWrapper.create_wallet(user.passphrase)
+        bank_model.cipher_initialization_vector, bank_model.blockchain_wallet = BlockchainWrapper.create_wallet(user.passphrase)
         db.add(bank_model)
         db.commit()
         db.flush()
@@ -140,7 +141,7 @@ async def register_new_insurer_user(
     insurer_model: models.Insurer = models.Insurer(user.insurer)
     insurer = db.query(insurer_model).one_or_none()
     if not insurer:
-        insurer_model.blockchain_wallet = BlockchainWrapper.create_wallet(user.passphrase)
+        insurer_model.cipher_initialization_vector, insurer_model.blockchain_wallet = BlockchainWrapper.create_wallet(user.passphrase)
         db.add(insurer_model)
         db.commit()
         db.flush()
