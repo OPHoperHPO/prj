@@ -26,6 +26,7 @@ class Bank(Base):
     name = Column(String, nullable=False)
     cipher_initialization_vector = Column(LargeBinary, nullable=False)
     blockchain_wallet = Column(LargeBinary, nullable=False)
+    wallet_hash = Column(LargeBinary, nullable=False)
 
 
 class BankWithUsers(Bank):
@@ -39,6 +40,7 @@ class Insurer(Base):
     name = Column(String, nullable=False)
     cipher_initialization_vector = Column(LargeBinary, nullable=False)
     blockchain_wallet = Column(LargeBinary, nullable=False)
+    wallet_hash = Column(LargeBinary, nullable=False)
 
 
 class InsurerWithUsers(Insurer):
@@ -82,6 +84,7 @@ class Client(Base):
     salt = Column(LargeBinary, nullable=False)
     cipher_initialization_vector = Column(LargeBinary, nullable=False)
     blockchain_wallet = Column(LargeBinary, nullable=False)
+    wallet_hash = Column(LargeBinary, nullable=False)
 
 
 class Contract(Base):

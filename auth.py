@@ -18,11 +18,11 @@ e6a92055d442361c1a949a564c03f1862352508c4062562ff697320608af17a99050f493c4cb4684
 4d5adb1d2a6715805dc99691e5158e4a8b34e44f0f91d3e44a89967f0ae46472082b8c14c97bf072095d0fce0a31c4e8883bd7025be7e005e1273b77\
 07adc8da5ba42c01bb5cf837f2ff1b71c82caf5eb6"
 
-manager = LoginManager(secret, token_url="/auth/token")
+manager = LoginManager(secret, token_url="/api/v1/login", use_cookie=True)
 
 
 @manager.user_loader()
-async def user_loader(email: str):
+def user_loader(email: str):
     db: Session = next(get_db())
     as_client = (
         db.query(models.Client).filter(models.Client.login == email).one_or_none()
@@ -60,7 +60,7 @@ async def login(response: JSONResponse, data: OAuth2PasswordRequestForm = Depend
     email = data.username
     password = data.password
 
-    user = await user_loader(email)
+    user = user_loader(email)
 
     if not user:
         raise InvalidCredentialsException
@@ -71,14 +71,24 @@ async def login(response: JSONResponse, data: OAuth2PasswordRequestForm = Depend
         data={
             "sub": user.login,
             "rol": 0
-            if user is models.BankUserWithBank
+            if isinstance(user, models.BankUserWithBank)
             else 1
-            if user is models.InsurerUserWithInsurer
+            if isinstance(user, models.InsurerUserWithInsurer)
             else 2,
         }
     )
 
-    response = JSONResponse(status_code=200, content={"result": "success"})
+    response = JSONResponse(
+        status_code=200,
+        content={
+            "result": "success",
+            "user_role": 0
+            if isinstance(user, models.BankUserWithBank)
+            else 1
+            if isinstance(user, models.InsurerUserWithInsurer)
+            else 2,
+        },
+    )
 
     # response.set_cookie("access-token", value=access_token, httponly=True, samesite="none", secure=True) // kinda template for future bugfixes????
 
@@ -89,7 +99,7 @@ async def login(response: JSONResponse, data: OAuth2PasswordRequestForm = Depend
 @app.post("/api/v1/register")
 async def register_new_user(user: schemas.User, db: Session = Depends(get_db)):
     user_model: models.Client = models.Client(login=user.login)
-    user_by_login = await user_loader(user.login)
+    user_by_login = user_loader(user.login)
     if user_by_login:
         return JSONResponse(
             status_code=400,
@@ -101,7 +111,12 @@ async def register_new_user(user: schemas.User, db: Session = Depends(get_db)):
     password, salt = hash_password(user.password)
     user_model.password = password
     user_model.salt = salt
-    user_model.cipher_initialization_vector, user_model.blockchain_wallet = BlockchainWrapper.create_wallet(user.passphrase)
+    (
+        user_model.cipher_initialization_vector,
+        user_model.blockchain_wallet,
+        user_model.wallet_hash,
+    ) = BlockchainWrapper.create_wallet(user.passphrase)
+    user_model.wallet_hash = user_model.wallet_hash.digest()
     db.add(user_model)
     db.commit()
     db.flush()
@@ -116,11 +131,25 @@ async def register_new_user(user: schemas.User, db: Session = Depends(get_db)):
 @app.post("/api/v1/register_bank_user")
 async def register_new_bank_user(user: schemas.BankUser, db: Session = Depends(get_db)):
     user_model: models.BankUser = models.BankUser(login=user.login)
+    user_by_login = user_loader(user.login)
+    if user_by_login:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "result": "error",
+                "result_description": "User with this email already exists",
+            },
+        )
     bank_model: models.Bank = models.Bank(name=user.bank)
-    bank = db.query(bank_model).one_or_none()
+    bank = db.query(models.Bank).filter(models.Bank.name == user.bank).one_or_none()
 
     if not bank:
-        bank_model.cipher_initialization_vector, bank_model.blockchain_wallet = BlockchainWrapper.create_wallet(user.passphrase)
+        (
+            bank_model.cipher_initialization_vector,
+            bank_model.blockchain_wallet,
+            bank_model.wallet_hash,
+        ) = BlockchainWrapper.create_wallet(user.passphrase)
+        bank_model.wallet_hash = bank_model.wallet_hash.digest()
         db.add(bank_model)
         db.commit()
         db.flush()
@@ -128,6 +157,7 @@ async def register_new_bank_user(user: schemas.BankUser, db: Session = Depends(g
         bank_model = bank
 
     user_model.bank_id = bank_model.id
+    user_model.password, user_model.salt = hash_password(user.password)
     db.add(user_model)
     db.commit()
     db.flush()
@@ -138,23 +168,65 @@ async def register_new_insurer_user(
     user: schemas.InsurerUser, db: Session = Depends(get_db)
 ):
     user_model: models.InsurerUser = models.InsurerUser(login=user.login)
-    insurer_model: models.Insurer = models.Insurer(user.insurer)
-    insurer = db.query(insurer_model).one_or_none()
+    user_by_login = user_loader(user.login)
+    if user_by_login:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "result": "error",
+                "result_description": "User with this email already exists",
+            },
+        )
+    insurer_model: models.Insurer = models.Insurer(name=user.insurer)
+    insurer = (
+        db.query(models.Insurer)
+        .filter(models.Insurer.name == user.insurer)
+        .one_or_none()
+    )
     if not insurer:
-        insurer_model.cipher_initialization_vector, insurer_model.blockchain_wallet = BlockchainWrapper.create_wallet(user.passphrase)
+        (
+            insurer_model.cipher_initialization_vector,
+            insurer_model.blockchain_wallet,
+            insurer_model.wallet_hash,
+        ) = BlockchainWrapper.create_wallet(user.passphrase)
+        insurer_model.wallet_hash = insurer_model.wallet_hash.digest()
         db.add(insurer_model)
         db.commit()
         db.flush()
     else:
         insurer_model = insurer
 
-    user_model.bank_id = insurer_model.id
+    user_model.insurer_id = insurer_model.id
+    user_model.password, user_model.salt = hash_password(user.password)
     db.add(user_model)
     db.commit()
     db.flush()
 
 
 @app.post("/api/v1/check_pass_phrase")
-async def check_pass_phrase(passphrase: str, user=Depends(manager)):
-    # privateKey = AES.
-    pass
+async def check_pass_phrase(passphrase: str, user=Depends(manager), db=Depends(get_db)):
+    checking_entry = None
+    if user is models.BankUser:
+        checking_entry = db.query(models.Bank).filter(id == user.bank_id).one()
+    elif user is models.InsurerUser:
+        checking_entry = db.query(models.Insurer).filter(id == user.insurer_id).one()
+    else:
+        checking_entry = user
+
+    cipher_key = hashlib.sha256(passphrase.encode()).digest()
+    cipher_config = AES.new(
+        cipher_key, AES.MODE_CBC, checking_entry.cipher_initialization_vector
+    )
+    private_wallet_key = cipher_config.decrypt(checking_entry.blockchain_wallet)
+    return hashlib.sha256(private_wallet_key).digest() == checking_entry.wallet_hash
+
+
+@app.post("/api/v1/get_encrypted_private_key")
+async def get_encrypted_private_key(user=Depends(manager)):
+    if not isinstance(user, models.Client):
+        return JSONResponse(
+            status_code=401,
+            content={"result": "error", "result_description": "Client only method"},
+        )
+
+    return user.blockchain_wallet.hex()

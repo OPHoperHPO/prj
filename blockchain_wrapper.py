@@ -28,13 +28,21 @@ class BlockchainWrapper:
 
     @staticmethod
     def create_wallet(passfrase):
-        key = hashlib.sha256(passfrase).digest()
+        key = hashlib.sha256(passfrase.encode()).digest()
         initialization_vector = Random.new().read(AES.block_size)
         cipher_config = AES.new(key, AES.MODE_CBC, initialization_vector)
-        return initialization_vector, cipher_config.encrypt(web3.eth.account.create(time.time_ns()).privateKey)
+        pk = web3.eth.account.create(time.time_ns()).privateKey
+        return initialization_vector, cipher_config.encrypt(pk), hashlib.sha256(pk)
 
     def create_contract(
         self, insurer: models.Insurer, bank: models.Bank, client: models.Client
     ):
         contract = web3.eth.contract(*self.compile_contract())
         tx_hash = contract.constructor(bank.blockchain_wallet)
+
+    @staticmethod
+    def get_wallet(private_key):
+        try:
+            return web3.eth.account.from_key(private_key)
+        except ValueError:
+            return None
