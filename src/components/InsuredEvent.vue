@@ -30,7 +30,7 @@
             :name="'creditTimestamp'"
             >Дата проишествия</input-mask
           >
-          <form-button @click.prevent="createHandler">Заявить</form-button>
+          <form-button @submit="createHandler">Заявить</form-button>
         </form>
       </div>
     </div>

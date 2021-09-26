@@ -8,6 +8,9 @@
       />
       <insured-event v-if="this.character == 'person'" class="profile__block" />
     </div>
+    <transition name="bounce">
+      <v-notification v-if="notification" />
+    </transition>
   </div>
 </template>
 
@@ -16,16 +19,23 @@ import FindContract from '@/components/FindContract.vue'
 import CreateContract from '@/components/CreateContract.vue'
 import InsuredEvent from '@/components/InsuredEvent.vue'
 import { mapGetters } from 'vuex'
+import VNotification from '@/components/vNotification.vue'
 
 export default {
   components: {
     FindContract,
     CreateContract,
-    InsuredEvent
+    InsuredEvent,
+    VNotification,
+  },
+
+  mounted() {
+    if (this.authToken == null)
+      this.$router.push({ name: 'login' })
   },
 
   computed: {
-    ...mapGetters(['character']),
+    ...mapGetters(['authToken', 'character', 'notification']),
   },
 }
 </script>

@@ -1,6 +1,11 @@
 <template>
-  <v-navbar :logoText="'Prometheus'" :height="{ pc: '60px', tablet: '40px' }" />
-  <router-view />
+  <div id="app__inner">
+    <v-navbar
+      :logoText="'Prometheus'"
+      :height="{ pc: '60px', tablet: '40px' }"
+    />
+    <router-view />
+  </div>
 </template>
 
 <script>
@@ -18,6 +23,12 @@ export default {
       deleteQuery: this.deleteQuery,
       addQuery: this.addQuery,
       readQuery: this.readQuery,
+    }
+  },
+
+  data() {
+    return {
+      notify: false,
     }
   },
 
@@ -60,8 +71,6 @@ body {
 }
 
 #app {
-  display: flex;
-  flex-direction: column;
   width: 100%;
   height: 100%;
   color: #212121;
@@ -76,6 +85,13 @@ body {
   background-size: contain;
   background-position: bottom;
   background-repeat: no-repeat;
+
+  &__inner {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+  }
 }
 
 .container {
@@ -168,5 +184,14 @@ body {
 
 .material-icons-outlined {
   cursor: inherit;
+}
+
+.bounce-enter-active,
+.bounce-leave-active {
+  transition: opacity 0.2s ease;
+}
+.bounce-enter-from,
+.bounce-leave-to {
+  opacity: 0;
 }
 </style>

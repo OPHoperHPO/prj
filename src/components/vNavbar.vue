@@ -4,14 +4,24 @@
       <img src="@/assets/logo.png" />
     </router-link>
     <ul class="nav__block">
-      <li v-if="userLoggedIn" class="redirect">
-        <router-link
-          :to="{ name: 'profile' }"
-          class="redirect__link material-icons"
-        >
-          person
-        </router-link>
-      </li>
+      <template v-if="userLoggedIn">
+        <li class="redirect">
+          <p
+            @click.stop="toggleNotification"
+            class="redirect__link material-icons"
+          >
+            notifications
+          </p>
+        </li>
+        <li class="redirect">
+          <router-link
+            :to="{ name: 'profile' }"
+            class="redirect__link material-icons"
+          >
+            person
+          </router-link>
+        </li>
+      </template>
       <li class="redirect">
         <router-link :to="loginLink" class="redirect__link material-icons">
           {{ loginIcon }}
@@ -84,16 +94,12 @@ export default {
   },
 
   methods: {
-    ...mapActions(['updateCharacter']),
+    ...mapActions(['toggleNotification']),
 
     toggleNavbar() {
       this.navbarActive = !this.navbarActive
     },
-
-    characterHandler(e) {
-      this.updateCharacter(e.target.value)
-    }
-  }
+  },
 };
 </script>
 

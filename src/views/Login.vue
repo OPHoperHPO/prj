@@ -1,52 +1,57 @@
 <template>
-  <div class="centred login">
-    <div class="login__inner">
-      <form @submit.prevent="loginHandler" id="login-form">
-        <p class="login__header">
-          {{ titles.header[authType] }}<span @click.stop="toMainPage"></span>
-        </p>
-        <!-- <img src="@/assets/gosuslugi.png" alt="" class="gosuslugi" />
-        <p class="separator">Или</p> -->
-        <select v-model="character" name="" id="" class="role">
-          <option value="bank">Банк</option>
-          <option value="insurer">Страховая</option>
-          <option value="person">Физ. лицо</option>
-        </select>
-        <input-mask
-          @keydown.enter="loginHandler"
-          v-if="character != 'person'"
-          v-model="organization"
-          :name="'organization'"
-          class="login__field"
-          :class="{ wrong: authError }"
-          >Организация</input-mask
-        >
-        <input-mask
-          v-model="login"
-          :name="'login'"
-          class="login__field"
-          :class="{ wrong: authError }"
-          >Логин</input-mask
-        >
-        <input-mask
-          v-model="passwd"
-          :name="'password'"
-          class="login__field"
-          :class="{ wrong: authError }"
-          >Пароль</input-mask
-        >
-        <input-mask
-          v-model="secret"
-          :name="'secret'"
-          class="login__field"
-          :class="{ wrong: authError }"
-          >Секретная фраза</input-mask
-        >
-        <form-button>{{ titles.button[authType] }}</form-button>
-        <p @click.stop="switchType" class="switch">
-          {{ titles.switch[authType] }}
-        </p>
-      </form>
+  <div class="centred">
+    <div class="centred__inner">
+      <div class="login">
+        <div class="login__inner">
+          <form @submit.prevent="loginHandler" id="login-form">
+            <p class="login__header">
+              {{ titles.header[authType]
+              }}<span @click.stop="toMainPage"></span>
+            </p>
+            <!-- <img src="@/assets/gosuslugi.png" alt="" class="gosuslugi" />
+            <p class="separator">Или</p> -->
+            <select v-model="character" name="" id="" class="role">
+              <option value="bank">Банк</option>
+              <option value="insurer">Страховая</option>
+              <option value="person">Физ. лицо</option>
+            </select>
+            <input-mask
+              @keydown.enter="loginHandler"
+              v-if="character != 'person'"
+              v-model="organization"
+              :name="'organization'"
+              class="login__field"
+              :class="{ wrong: authError }"
+              >Организация</input-mask
+            >
+            <input-mask
+              v-model="login"
+              :name="'login'"
+              class="login__field"
+              :class="{ wrong: authError }"
+              >Логин</input-mask
+            >
+            <input-mask
+              v-model="passwd"
+              :name="'password'"
+              class="login__field"
+              :class="{ wrong: authError }"
+              >Пароль</input-mask
+            >
+            <input-mask
+              v-model="secret"
+              :name="'secret'"
+              class="login__field"
+              :class="{ wrong: authError }"
+              >Секретная фраза</input-mask
+            >
+            <form-button>{{ titles.button[authType] }}</form-button>
+            <p @click.stop="switchType" class="switch">
+              {{ titles.switch[authType] }}
+            </p>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -95,8 +100,9 @@ export default {
 
   mounted() {
     if (this.$route.query.logout != null) {
-      console.log('logout request');
+      console.log('logout request')
       this.updateAuthToken(undefined)
+      this.updateCharacter(undefined)
     }
   },
 
@@ -135,31 +141,39 @@ export default {
       this.deleteQuery('type')
     },
 
-    loginHandler() {
-      // if (this.authType === 'login') {
-      //   this.logon()
-      // } else {
-      //   this.regon()
-      // }
+    async loginHandler() {
       if (this.login.length == 0 || this.passwd.length == 0 || this.secret.length == 0)
         return this.authError = true
-      this.updateAuthToken('userTokenXXX')
+      let token
+      if (this.authType === 'login') {
+        token = await this.logon
+      } else {
+        token = await this.regon
+      }
+      this.updateAuthToken(exec())
       this.updateCharacter(this.character)
       this.$router.push({ name: 'profile' })
     },
 
-    regon() {
+    async regon() {
       const data = { username: this.login, password: this.passwd, passphrase: this.secret }
       axios.post(`${server_url}/${this.registerUrl}`, { data })
         .then(res => console.log(res))
         .catch((err, res) => console.log(err, res))
     },
 
-    logon() {
+    async logon() {
       const data = { username: this.login, password: this.passwd }
-      axios.post(`${server_url}/login`, { data })
-        .then(res => console.log(res))
-        .catch((err, res) => console.log(err, res))
+      const token = await axios.post(`${server_url}/login`, { data })
+        .then(res => {
+          console.log(res)
+          return 'token'
+        })
+        .catch((err, res) => {
+          console.log(err, res)
+          return 'token'
+        })
+      return token
     },
 
     toMainPage() {
@@ -171,19 +185,27 @@ export default {
 
 <style lang="scss" scoped>
 .centred {
+  width: 100%;
+  height: calc(100% - var(--h-navbar));
+  overflow-y: auto;
+
+  &__inner {
+    width: 100%;
+    height: 100%;
+  }
+}
+.login {
   display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
-  height: calc(100% - var(--h-navbar));
-}
+  height: 100%;
 
-.login {
   &__inner {
     position: relative;
     width: 100%;
     max-width: 540px;
-    height: 100%;
+    // height: 100%;
     max-height: 550px;
     border-radius: 17px;
     background-color: var(--primary-lite);
@@ -302,6 +324,18 @@ export default {
   }
 }
 
+@media screen and (max-width: 540px) {
+  .login {
+    &__inner {
+      border-radius: 0;
+    }
+  }
+}
+@media screen and (max-height: 520px) {
+  .login {
+    align-items: flex-start;
+  }
+}
 @media screen and (max-width: 420px) {
   #login-form {
     min-height: 100%;
