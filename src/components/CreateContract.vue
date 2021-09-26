@@ -8,28 +8,37 @@
           <input-mask v-model="newContract.fullname" :name="'fullname'"
             >ФИО клиента</input-mask
           >
+          <input-mask v-model="newContract.email" :name="'email'"
+            >Email клиента</input-mask
+          >
+          <input-mask v-model="newContract.passwd" :name="'password'"
+            >Пароль клиента</input-mask
+          >
+          <input-mask v-model="newContract.passphrase" :name="'passphrase'"
+            >Секретая фраза клиента</input-mask
+          >
           <input-mask
             v-model="newContract.creditAddress"
             :name="'creditAddress'"
             >Название банка</input-mask
-          >
-          <input-mask v-model="newContract.creditNumber" :name="'creditNumber'"
-            >Номер кредитного договора</input-mask
-          >
-          <input-mask
-            v-model="newContract.creditTimestamp"
-            :name="'creditTimestamp'"
-            >Дата кредитного договора</input-mask
           >
           <input-mask
             v-model="newContract.insCompAddress"
             :name="'insCompAddress'"
             >Название страховой компании</input-mask
           >
+          <input-mask v-model="newContract.creditNumber" :name="'creditNumber'"
+            >Номер кредитного договора</input-mask
+          >
           <input-mask
             v-model="newContract.insCompNumber"
             :name="'insCompNumber'"
             >Номер договора страхования</input-mask
+          >
+          <input-mask
+            v-model="newContract.creditTimestamp"
+            :name="'creditTimestamp'"
+            >Дата кредитного договора</input-mask
           >
           <input-mask
             v-model="newContract.insCompTimestamp"

@@ -10,7 +10,7 @@
             </p>
             <!-- <img src="@/assets/gosuslugi.png" alt="" class="gosuslugi" />
             <p class="separator">Или</p> -->
-            <select v-model="character" name="" id="" class="role">
+            <select v-model="character" name="" id="" class="enumRole">
               <option value="bank">Банк</option>
               <option value="insurer">Страховая</option>
               <option value="person">Физ. лицо</option>
@@ -26,7 +26,7 @@
             >
             <input-mask
               v-model="login"
-              :name="'login'"
+              :name="'username'"
               class="login__field"
               :class="{ wrong: authError }"
               >Логин</input-mask
@@ -40,7 +40,7 @@
             >
             <input-mask
               v-model="secret"
-              :name="'secret'"
+              :name="'passphrase'"
               class="login__field"
               :class="{ wrong: authError }"
               >Секретная фраза</input-mask
@@ -142,38 +142,55 @@ export default {
     },
 
     async loginHandler() {
+      const enumRole = ['bank', 'insurer', 'person']
+
       if (this.login.length == 0 || this.passwd.length == 0 || this.secret.length == 0)
         return this.authError = true
-      let token
-      if (this.authType === 'login') {
-        token = await this.logon
-      } else {
-        token = await this.regon
+      if (this.authType === 'registration') {
+        const status = await this.regon()
+        console.log('reg state', status)
+        if (status !== 200)
+          return this.authError = true
       }
-      this.updateAuthToken(exec())
-      this.updateCharacter(this.character)
+      const { status, token, role } = await this.logon()
+      if (status !== 200)
+        return this.authError = true
+      this.updateAuthToken(token)
+      this.updateCharacter(enumRole[role])
       this.$router.push({ name: 'profile' })
     },
 
     async regon() {
-      const data = { username: this.login, password: this.passwd, passphrase: this.secret }
-      axios.post(`${server_url}/${this.registerUrl}`, { data })
-        .then(res => console.log(res))
-        .catch((err, res) => console.log(err, res))
+      const data = { login: this.login, password: this.passwd, passphrase: this.secret }
+      const status = axios.post(`${server_url}/${this.registerUrl}`, data)
+        .then(res => res.status)
+        .catch((err, res) => err)
+      return status
     },
 
     async logon() {
-      const data = { username: this.login, password: this.passwd }
-      const token = await axios.post(`${server_url}/login`, { data })
+      const data = new URLSearchParams()
+      data.append('username', this.login)
+      data.append('password', this.passwd)
+      const options = {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        }
+      }
+      const response = await axios.post(`${server_url}/login`, data, options)
         .then(res => {
-          console.log(res)
-          return 'token'
+          console.log('login', res)
+          return {
+            status: res.status,
+            token: res.data.wallet_address,
+            role: res.data.user_role,
+          }
         })
         .catch((err, res) => {
-          console.log(err, res)
-          return 'token'
+          console.log('login catch', err, res)
+          return res
         })
-      return token
+      return response
     },
 
     toMainPage() {
@@ -295,7 +312,7 @@ export default {
   width: 100%;
 }
 
-.role {
+.enumRole {
   margin: 15px 0;
   width: 200px;
   height: 2em;

@@ -59,7 +59,7 @@ import FormButton from '@/components/FormButton.vue'
 export default {
   components: {
     InputMask,
-    FormButton
+    FormButton,
   },
 
   data() {
@@ -71,12 +71,12 @@ export default {
 
   methods: {
     searchHandler() {
-      console.log('request to find contract information', this.contractId)
+      console.log('request to find contract information')
       const loader = this.$loading.show({ container: this.$refs.search, canCancel: false })
-      setTimeout(() => {
-        this.dataHidden = false
-        loader.hide()
-      }, 500)
+      // setTimeout(() => {
+      //   this.dataHidden = false
+      //   loader.hide()
+      // }, 500)
     },
 
     inputHandler(e) {

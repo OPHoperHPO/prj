@@ -1,4 +1,5 @@
 import { createStore } from 'vuex'
+import createPersistedState from "vuex-persistedstate";
 
 export default createStore({
   state: {
@@ -38,5 +39,10 @@ export default createStore({
     character: (state) => state.character,
     authToken: (state) => state.authToken,
     notification: (state) => state.notification,
-  }
+  },
+  plugins: [
+    createPersistedState({
+      paths: ['authToken', 'character'],
+    })
+  ],
 })

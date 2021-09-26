@@ -186,6 +186,20 @@ body {
   cursor: inherit;
 }
 
+.vld-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-content: center;
+  justify-content: center;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(3, 3, 3, 0.16);
+  z-index: 1000;
+}
+
 .bounce-enter-active,
 .bounce-leave-active {
   transition: opacity 0.2s ease;
