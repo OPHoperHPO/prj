@@ -86,6 +86,7 @@ class Contract(Base):
 
     id = Column(Integer, primary_key=True)
     address = Column(String, nullable=False)
+    contract_number = Column(String, nullable=False)
     bank_id = Column(Integer, ForeignKey("banks.id"))
     insurer_id = Column(Integer, ForeignKey("insurers.id"))
     client_id = Column(Integer, ForeignKey("clients.id"))
